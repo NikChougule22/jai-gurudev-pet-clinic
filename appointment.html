@@ -145,7 +145,7 @@
 
     <script src="config.js"></script>
     <script>
-        const supabase = initSupabase();
+        const supabaseClient = initSupabase();
         lucide.createIcons();
 
         const CLINIC_OPEN = 9;
@@ -170,7 +170,7 @@
             slotsContainer.innerHTML = '<div class="col-span-full text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full mx-auto"></div></div>';
 
             try {
-                const { data: appointments, error } = await supabase
+                const { data: appointments, error } = await supabaseClient
                     .rpc('get_booked_slots', { p_date: date });
 
                 if (error) throw error;
@@ -225,7 +225,7 @@
             }
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .rpc('get_patient_booking_profile', { p_phone: phone });
 
                 if (error) throw error;
@@ -293,7 +293,7 @@
             };
 
             try {
-                const { data: appointmentId, error } = await supabase
+                const { data: appointmentId, error } = await supabaseClient
                     .rpc('book_public_appointment', {
                         p_appointment_date: appointmentData.appointment_date,
                         p_appointment_time: appointmentData.appointment_time,

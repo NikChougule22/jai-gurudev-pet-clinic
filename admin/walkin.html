@@ -159,7 +159,7 @@
 
     <script src="../config.js"></script>
     <script>
-        const supabase = initSupabase();
+        const supabaseClient = initSupabase();
         const today = new Date().toISOString().split('T')[0];
 
         document.querySelectorAll('input[name="position"]').forEach(radio => {
@@ -175,7 +175,7 @@
         });
 
         async function loadAvailableSlots() {
-            const { data: booked } = await supabase
+            const { data: booked } = await supabaseClient
                 .from('appointments')
                 .select('appointment_time')
                 .eq('appointment_date', today);
@@ -201,7 +201,7 @@
             const phone = document.getElementById('phone').value;
             if (phone.length !== 10) return;
 
-            const { data: patient } = await supabase
+            const { data: patient } = await supabaseClient
                 .from('patients')
                 .select('*')
                 .eq('phone', phone)
@@ -250,7 +250,7 @@
             };
 
             try {
-                const { data: patientId, error: funcError } = await supabase
+                const { data: patientId, error: funcError } = await supabaseClient
                     .rpc('find_or_create_patient', {
                         p_phone: walkinData.phone,
                         p_owner_name: walkinData.owner_name,
@@ -262,7 +262,7 @@
 
                 walkinData.patient_id = patientId;
 
-                const { error } = await supabase.from('appointments').insert([walkinData]);
+                const { error } = await supabaseClient.from('appointments').insert([walkinData]);
                 if (error) throw error;
 
                 alert('Walk-in patient added successfully!');
@@ -274,7 +274,7 @@
         });
 
         async function getNextAvailableSlot() {
-            const { data: current } = await supabase
+            const { data: current } = await supabaseClient
                 .from('appointments')
                 .select('appointment_time')
                 .eq('appointment_date', today)
@@ -285,7 +285,7 @@
         }
 
         async function getLastSlot() {
-            const { data: last } = await supabase
+            const { data: last } = await supabaseClient
                 .from('appointments')
                 .select('appointment_time')
                 .eq('appointment_date', today)
@@ -303,7 +303,7 @@
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             sessionStorage.clear();
             window.location.href = '../index.html';
         }

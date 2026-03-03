@@ -194,7 +194,7 @@
 
     <script src="../config.js"></script>
     <script>
-        const supabase = initSupabase();
+        const supabaseClient = initSupabase();
         let searchTimeout;
         let currentPatient = null;
 
@@ -209,7 +209,7 @@
             const query = document.getElementById('searchInput').value.trim();
             const type = document.getElementById('filterType').value;
             
-            let dbQuery = supabase.from('patients').select('*', { count: 'exact' });
+            let dbQuery = supabaseClient.from('patients').select('*', { count: 'exact' });
 
             if (query) {
                 dbQuery = dbQuery.or(`owner_name.ilike.%${query}%,pet_name.ilike.%${query}%,phone.ilike.%${query}%`);
@@ -297,7 +297,7 @@
         }
 
         async function viewPatientDetail(patientId) {
-            const { data: patient, error } = await supabase
+            const { data: patient, error } = await supabaseClient
                 .from('patients')
                 .select('*, appointments(*)')
                 .eq('id', patientId)
@@ -405,7 +405,7 @@
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             window.location.href = '../index.html';
         }
 

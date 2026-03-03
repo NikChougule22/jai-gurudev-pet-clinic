@@ -432,7 +432,7 @@
 
     <script src="../config.js"></script>
     <script>
-        const supabase = initSupabase();
+        const supabaseClient = initSupabase();
         let currentUser = null;
         let userRole = null;
         let appointments = [];
@@ -440,7 +440,7 @@
         let currentFilter = 'all';
 
         async function init() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (!session) {
                 window.location.href = 'login.html';
@@ -452,7 +452,7 @@
             const staffName = sessionStorage.getItem('staffName');
             
             if (!userRole) {
-                const { data: staff } = await getStaffProfile(supabase, currentUser);
+                const { data: staff } = await getStaffProfile(supabaseClient, currentUser);
                 
                 if (staff) {
                     userRole = staff.role;
@@ -464,7 +464,7 @@
             setupUIBasedOnRole(userRole, staffName || sessionStorage.getItem('staffName'));
             await loadDashboard();
             
-            supabase
+            supabaseClient
                 .channel('appointments')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => loadDashboard())
                 .subscribe();
@@ -515,7 +515,7 @@
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             });
 
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('appointments')
                 .select('*, patients(*)')
                 .eq('appointment_date', today)
@@ -642,7 +642,7 @@
         }
 
         async function updateStatus(id, status) {
-            const { error } = await supabase.from('appointments').update({ status, updated_at: new Date() }).eq('id', id);
+            const { error } = await supabaseClient.from('appointments').update({ status, updated_at: new Date() }).eq('id', id);
             if (error) alert('Error updating status: ' + error.message);
         }
 
@@ -650,7 +650,7 @@
             const existing = appointments.find(a => a.status === 'in-progress');
             if (existing) {
                 if (!confirm(`Currently with ${existing.pet_name}. Start new patient?`)) return;
-                await supabase.from('appointments').update({ status: 'checked-in' }).eq('id', existing.id);
+                await supabaseClient.from('appointments').update({ status: 'checked-in' }).eq('id', existing.id);
             }
             await updateStatus(id, 'in-progress');
         }
@@ -759,7 +759,7 @@
             };
 
             try {
-                const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
+                const { error } = await supabaseClient.from('appointments').update(updateData).eq('id', id);
                 if (error) throw error;
 
                 alert(updateData.status === 'completed' ? 'Treatment completed!' : 'Treatment recorded. Waiting for payment.');
@@ -783,7 +783,7 @@
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             sessionStorage.clear();
             window.location.href = 'login.html';
         }
