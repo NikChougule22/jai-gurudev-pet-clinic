@@ -452,11 +452,7 @@
             const staffName = sessionStorage.getItem('staffName');
             
             if (!userRole) {
-                const { data: staff } = await supabase
-                    .from('staff')
-                    .select('role, name')
-                    .eq('id', currentUser.id)
-                    .single();
+                const { data: staff } = await getStaffProfile(supabase, currentUser);
                 
                 if (staff) {
                     userRole = staff.role;

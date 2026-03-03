@@ -153,6 +153,7 @@
         const SLOT_DURATION = 30;
         let selectedSlot = null;
         let bookedSlots = [];
+        let existingPatientProfile = null;
 
         const dateInput = document.getElementById('appointmentDate');
         const today = new Date().toISOString().split('T')[0];
@@ -170,14 +171,11 @@
 
             try {
                 const { data: appointments, error } = await supabase
-                    .from('appointments')
-                    .select('appointment_time, status')
-                    .eq('appointment_date', date)
-                    .in('status', ['scheduled', 'checked-in', 'in-progress']);
+                    .rpc('get_booked_slots', { p_date: date });
 
                 if (error) throw error;
 
-                bookedSlots = appointments.map(a => a.appointment_time.substring(0, 5));
+                bookedSlots = (appointments || []).map(a => a.appointment_time.substring(0, 5));
                 slotsContainer.innerHTML = '';
 
                 for (let hour = CLINIC_OPEN; hour < CLINIC_CLOSE; hour++) {
@@ -227,18 +225,21 @@
             }
 
             try {
-                const { data: patient, error } = await supabase
-                    .from('patients')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single();
+                const { data, error } = await supabase
+                    .rpc('get_patient_booking_profile', { p_phone: phone });
+
+                if (error) throw error;
+
+                const patient = Array.isArray(data) ? data[0] : data;
 
                 const msgEl = document.getElementById('existingPatientMsg');
                 
                 if (patient) {
-                    msgEl.innerHTML = `<span class="text-green-600 font-medium">✓ Welcome back!</span> Found record for ${patient.pet_name} (${patient.pet_type}). <a href="#" onclick="fillPatientData('${patient.id}'); return false;" class="text-teal-600 underline">Auto-fill details</a>`;
+                    existingPatientProfile = patient;
+                    msgEl.innerHTML = `<span class="text-green-600 font-medium">✓ Welcome back!</span> Found record for ${patient.pet_name} (${patient.pet_type}). <a href="#" onclick="fillPatientData(); return false;" class="text-teal-600 underline">Auto-fill details</a>`;
                     msgEl.classList.remove('hidden');
                 } else {
+                    existingPatientProfile = null;
                     msgEl.innerHTML = `<span class="text-blue-600">New patient - will create record</span>`;
                     msgEl.classList.remove('hidden');
                 }
@@ -247,16 +248,15 @@
             }
         }
 
-        function fillPatientData(patientId) {
-            supabase.from('patients').select('*').eq('id', patientId).single()
-                .then(({ data }) => {
-                    if (data) {
-                        document.querySelector('[name="ownerName"]').value = data.owner_name;
-                        document.querySelector('[name="petName"]').value = data.pet_name;
-                        document.querySelector('[name="petType"]').value = data.pet_type;
-                        document.querySelector('[name="petBreed"]').value = data.pet_breed || '';
-                    }
-                });
+        function fillPatientData() {
+            if (!existingPatientProfile) {
+                return;
+            }
+
+            document.querySelector('[name="ownerName"]').value = existingPatientProfile.owner_name;
+            document.querySelector('[name="petName"]').value = existingPatientProfile.pet_name;
+            document.querySelector('[name="petType"]').value = existingPatientProfile.pet_type;
+            document.querySelector('[name="petBreed"]').value = existingPatientProfile.pet_breed || '';
         }
 
         function goBackToSlots() {
@@ -293,38 +293,17 @@
             };
 
             try {
-                const { data: existingPatient } = await supabase
-                    .from('patients')
-                    .select('id')
-                    .eq('phone', appointmentData.phone)
-                    .single();
-
-                let patientId = existingPatient?.id;
-
-                if (!patientId) {
-                    const { data: newPatient, error: patientError } = await supabase
-                        .from('patients')
-                        .insert([{
-                            phone: appointmentData.phone,
-                            owner_name: appointmentData.owner_name,
-                            pet_name: appointmentData.pet_name,
-                            pet_type: appointmentData.pet_type,
-                            pet_breed: appointmentData.pet_breed
-                        }])
-                        .select()
-                        .single();
-                    
-                    if (patientError) throw patientError;
-                    patientId = newPatient.id;
-                }
-
-                appointmentData.patient_id = patientId;
-
-                const { data: appointment, error } = await supabase
-                    .from('appointments')
-                    .insert([appointmentData])
-                    .select()
-                    .single();
+                const { data: appointmentId, error } = await supabase
+                    .rpc('book_public_appointment', {
+                        p_appointment_date: appointmentData.appointment_date,
+                        p_appointment_time: appointmentData.appointment_time,
+                        p_owner_name: appointmentData.owner_name,
+                        p_phone: appointmentData.phone,
+                        p_pet_name: appointmentData.pet_name,
+                        p_pet_type: appointmentData.pet_type,
+                        p_pet_breed: appointmentData.pet_breed,
+                        p_reason: appointmentData.reason
+                    });
 
                 if (error) throw error;
 
@@ -332,7 +311,7 @@
                 document.getElementById('successMessage').classList.remove('hidden');
                 document.getElementById('confirmDate').textContent = new Date(appointmentData.appointment_date).toLocaleDateString('en-IN');
                 document.getElementById('confirmTime').textContent = formData.get('selectedTime');
-                document.getElementById('confirmToken').textContent = appointment.id.substring(0, 8).toUpperCase();
+                document.getElementById('confirmToken').textContent = String(appointmentId).substring(0, 8).toUpperCase();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
 
             } catch (error) {

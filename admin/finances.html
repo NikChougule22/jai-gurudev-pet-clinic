@@ -170,11 +170,7 @@
                 return;
             }
 
-            const { data: staff } = await supabase
-                .from('staff')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
+            const { data: staff } = await getStaffProfile(supabase, session.user);
 
             if (!staff || staff.role !== 'admin') {
                 document.getElementById('accessDenied').classList.remove('hidden');

@@ -7,7 +7,7 @@ const CONFIG = {
     // Supabase credentials (from Project Settings → API)
     SUPABASE: {
         URL: 'https://npazmhtqxqbrfrhqidvf.supabase.co',  // ← YOUR URL
-        KEY: 'sb_publishable_tdAk5dgvm67xA1JXHGx2Bw_AO49IIyl'                       // ← YOUR ANON KEY
+        KEY: 'sb_publishable_tdAk5dgvm67xA1JXHGx2Bw_AO49IIyl' // ← YOUR ANON KEY
     },
     
     // Clinic Information
@@ -56,4 +56,39 @@ const CONFIG = {
 // Initialize Supabase client
 function initSupabase() {
     return supabase.createClient(CONFIG.SUPABASE.URL, CONFIG.SUPABASE.KEY);
+}
+
+// Resolve a staff record using auth user id first, then email as a compatibility fallback.
+async function getStaffProfile(client, user) {
+    let query = await client
+        .from('staff')
+        .select('id, role, name, email')
+        .eq('id', user.id)
+        .single();
+
+    if (query.data) {
+        return query;
+    }
+
+    if (!user.email) {
+        return query;
+    }
+
+    return client
+        .from('staff')
+        .select('id, role, name, email')
+        .eq('email', user.email)
+        .single();
+}
+
+// Optional login-time sync so legacy staff rows keyed by email can be migrated to auth user ids.
+async function syncStaffIdentity(client, user) {
+    if (!user?.id || !user?.email) {
+        return { data: null, error: null };
+    }
+
+    return client.rpc('sync_staff_identity', {
+        p_user_id: user.id,
+        p_email: user.email
+    });
 }

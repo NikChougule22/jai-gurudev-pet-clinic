@@ -246,8 +246,7 @@
                 status: 'checked-in',
                 is_walkin: true,
                 walkin_added_by: sessionStorage.getItem('staffName') || 'Staff',
-                total_amount: parseInt(formData.get('estimatedFee')) || 0,
-                priority: formData.get('priority')
+                total_amount: parseInt(formData.get('estimatedFee')) || 0
             };
 
             try {

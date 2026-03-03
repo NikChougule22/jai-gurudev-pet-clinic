@@ -58,14 +58,13 @@
         </div>
     </div>
 
+    <script src="../config.js"></script>
     <script>
-        const SUPABASE_URL = 'https://your-project.supabase.co';
-        const SUPABASE_KEY = 'your-anon-key';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = initSupabase();
 
         // Check if already logged in
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) redirectBasedOnRole(session.user.id);
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) redirectBasedOnRole(session.user);
         });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -80,7 +79,7 @@
             errorDiv.classList.add('hidden');
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: document.getElementById('email').value,
                     password: document.getElementById('password').value
                 });
@@ -88,7 +87,7 @@
                 if (error) throw error;
 
                 // Successful login - redirect based on role
-                await redirectBasedOnRole(data.user.id);
+                await redirectBasedOnRole(data.user);
 
             } catch (error) {
                 errorDiv.textContent = error.message === 'Invalid login credentials' 
@@ -100,17 +99,15 @@
             }
         });
 
-        async function redirectBasedOnRole(userId) {
+        async function redirectBasedOnRole(user) {
+            await syncStaffIdentity(supabaseClient, user);
+
             // Fetch user role from staff table
-            const { data: staff, error } = await supabase
-                .from('staff')
-                .select('role, name')
-                .eq('id', userId)
-                .single();
+            const { data: staff, error } = await getStaffProfile(supabaseClient, user);
 
             if (error || !staff) {
                 alert('User not found in staff database');
-                await supabase.auth.signOut();
+                await supabaseClient.auth.signOut();
                 return;
             }
 
