@@ -161,6 +161,7 @@
     <script>
         const supabaseClient = initSupabase();
         const today = new Date().toISOString().split('T')[0];
+        let bookingSettings = getDefaultBookingSettings();
 
         document.querySelectorAll('input[name="position"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -180,21 +181,19 @@
                 .select('appointment_time')
                 .eq('appointment_date', today);
             
-            const bookedTimes = booked.map(b => b.appointment_time.substring(0, 5));
+            const bookedTimes = (booked || []).map(b => b.appointment_time.substring(0, 5));
             const select = document.getElementById('customTime');
             select.innerHTML = '';
+            const allSlots = buildBookingSlots(bookingSettings);
             
-            for (let hour = 9; hour <= 20; hour++) {
-                for (let min = 0; min < 60; min += 30) {
-                    const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-                    if (!bookedTimes.includes(time)) {
-                        const option = document.createElement('option');
-                        option.value = time;
-                        option.textContent = time;
-                        select.appendChild(option);
-                    }
+            allSlots.forEach((time) => {
+                if (!bookedTimes.includes(time)) {
+                    const option = document.createElement('option');
+                    option.value = time;
+                    option.textContent = time;
+                    select.appendChild(option);
                 }
-            }
+            });
         }
 
         async function lookupPatient() {
@@ -274,32 +273,32 @@
         });
 
         async function getNextAvailableSlot() {
-            const { data: current } = await supabaseClient
+            const { data: appointments } = await supabaseClient
                 .from('appointments')
                 .select('appointment_time')
                 .eq('appointment_date', today)
-                .eq('status', 'in-progress')
-                .single();
-            
-            return '10:30:00';
+                .in('status', ['scheduled', 'checked-in', 'in-progress']);
+
+            const bookedTimes = new Set((appointments || []).map((item) => item.appointment_time.substring(0, 5)));
+            const nextSlot = buildBookingSlots(bookingSettings).find((time) => !bookedTimes.has(time));
+            return `${(nextSlot || buildBookingSlots(bookingSettings)[0] || '09:00')}:00`;
         }
 
         async function getLastSlot() {
-            const { data: last } = await supabaseClient
+            const { data: appointments } = await supabaseClient
                 .from('appointments')
                 .select('appointment_time')
                 .eq('appointment_date', today)
-                .order('appointment_time', { ascending: false })
-                .limit(1)
-                .single();
-            
-            if (!last) return '09:00:00';
-            
-            const [h, m] = last.appointment_time.split(':');
-            let newM = parseInt(m) + 30;
-            let newH = parseInt(h);
-            if (newM >= 60) { newM = 0; newH++; }
-            return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}:00`;
+                .in('status', ['scheduled', 'checked-in', 'in-progress']);
+
+            const bookedTimes = new Set((appointments || []).map((item) => item.appointment_time.substring(0, 5)));
+            const availableSlots = buildBookingSlots(bookingSettings).filter((time) => !bookedTimes.has(time));
+            const lastSlot = availableSlots[availableSlots.length - 1] || buildBookingSlots(bookingSettings)[0] || '09:00';
+            return `${lastSlot}:00`;
+        }
+
+        async function initBookingSettings() {
+            bookingSettings = await fetchBookingSettings(supabaseClient);
         }
 
         async function logout() {
@@ -308,7 +307,9 @@
             window.location.href = '../index.html';
         }
 
-        lucide.createIcons();
+        initBookingSettings().then(() => {
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>

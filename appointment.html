@@ -148,9 +148,7 @@
         const supabaseClient = initSupabase();
         lucide.createIcons();
 
-        const CLINIC_OPEN = 9;
-        const CLINIC_CLOSE = 20;
-        const SLOT_DURATION = 30;
+        let bookingSettings = getDefaultBookingSettings();
         let selectedSlot = null;
         let bookedSlots = [];
         let existingPatientProfile = null;
@@ -177,24 +175,25 @@
 
                 bookedSlots = (appointments || []).map(a => a.appointment_time.substring(0, 5));
                 slotsContainer.innerHTML = '';
+                const allSlots = buildBookingSlots(bookingSettings);
 
-                for (let hour = CLINIC_OPEN; hour < CLINIC_CLOSE; hour++) {
-                    for (let min = 0; min < 60; min += SLOT_DURATION) {
-                        const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-                        const isBooked = bookedSlots.includes(timeStr);
-                        
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = `py-3 px-4 rounded-lg text-sm font-medium transition ${isBooked ? 'slot-booked' : 'border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 slot-btn'}`;
-                        btn.textContent = timeStr;
-                        btn.disabled = isBooked;
-                        
-                        if (!isBooked) btn.onclick = () => selectSlot(btn, timeStr, date);
-                        slotsContainer.appendChild(btn);
-                    }
+                allSlots.forEach((timeStr) => {
+                    const isBooked = bookedSlots.includes(timeStr);
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `py-3 px-4 rounded-lg text-sm font-medium transition ${isBooked ? 'slot-booked' : 'border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 slot-btn'}`;
+                    btn.textContent = timeStr;
+                    btn.disabled = isBooked;
+
+                    if (!isBooked) btn.onclick = () => selectSlot(btn, timeStr, date);
+                    slotsContainer.appendChild(btn);
+                });
+
+                if (allSlots.length === 0) {
+                    slotsContainer.innerHTML = '<div class="col-span-full text-center text-amber-700 py-8">Booking is currently unavailable. Please contact the clinic.</div>';
                 }
 
-                const availableCount = ((CLINIC_CLOSE - CLINIC_OPEN) * 60 / SLOT_DURATION) - bookedSlots.length;
+                const availableCount = Math.max(allSlots.length - bookedSlots.length, 0);
                 document.getElementById('availabilityText').textContent = `${availableCount} slots available for ${new Date(date).toLocaleDateString('en-IN')}`;
 
             } catch (error) {
@@ -246,6 +245,10 @@
             } catch (error) {
                 console.log('New patient');
             }
+        }
+
+        async function initBookingSettings() {
+            bookingSettings = await fetchBookingSettings(supabaseClient);
         }
 
         function fillPatientData() {
@@ -323,7 +326,7 @@
             }
         });
 
-        loadAvailableSlots();
+        initBookingSettings().then(loadAvailableSlots);
     </script>
 </body>
 </html>

@@ -49,7 +49,11 @@ const CONFIG = {
         TIMEZONE: 'Asia/Kolkata',
         CURRENCY: '₹',
         SLOT_DURATION: 30,
-        MAX_DAILY_APPOINTMENTS: 50
+        MAX_DAILY_APPOINTMENTS: 50,
+        BOOKING_WINDOWS: [
+            { start: '09:00', end: '14:00' },
+            { start: '18:00', end: '21:00' }
+        ]
     }
 };
 
@@ -90,5 +94,89 @@ async function syncStaffIdentity(client, user) {
     return client.rpc('sync_staff_identity', {
         p_user_id: user.id,
         p_email: user.email
+    });
+}
+
+function getDefaultBookingSettings() {
+    return {
+        slotDuration: CONFIG.SETTINGS.SLOT_DURATION,
+        bookingWindows: [...CONFIG.SETTINGS.BOOKING_WINDOWS]
+    };
+}
+
+function timeToMinutes(value) {
+    const [hours, minutes] = String(value || '00:00').split(':').map(Number);
+    return (hours * 60) + minutes;
+}
+
+function minutesToTime(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function normalizeBookingWindows(windows) {
+    return (windows || [])
+        .filter((window) => window?.start && window?.end)
+        .map((window) => ({
+            start: String(window.start).slice(0, 5),
+            end: String(window.end).slice(0, 5)
+        }))
+        .filter((window) => timeToMinutes(window.end) > timeToMinutes(window.start))
+        .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+}
+
+function buildBookingSlots(settings) {
+    const slotDuration = Number(settings?.slotDuration) || CONFIG.SETTINGS.SLOT_DURATION;
+    const windows = normalizeBookingWindows(settings?.bookingWindows || CONFIG.SETTINGS.BOOKING_WINDOWS);
+    const slots = [];
+
+    windows.forEach((window) => {
+        for (let time = timeToMinutes(window.start); time < timeToMinutes(window.end); time += slotDuration) {
+            slots.push(minutesToTime(time));
+        }
+    });
+
+    return slots;
+}
+
+function formatBookingWindows(windows) {
+    return normalizeBookingWindows(windows)
+        .map((window) => `${window.start}-${window.end}`)
+        .join('\n');
+}
+
+function parseBookingWindowsInput(value) {
+    return normalizeBookingWindows(
+        String(value || '')
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+                const [start, end] = line.split('-').map((part) => part?.trim());
+                return { start, end };
+            })
+    );
+}
+
+async function fetchBookingSettings(client) {
+    const fallback = getDefaultBookingSettings();
+    const { data, error } = await client.rpc('get_booking_settings');
+
+    if (error || !data) {
+        return fallback;
+    }
+
+    const record = Array.isArray(data) ? data[0] : data;
+    return {
+        slotDuration: Number(record.slot_duration) || fallback.slotDuration,
+        bookingWindows: normalizeBookingWindows(record.booking_windows || fallback.bookingWindows)
+    };
+}
+
+async function saveBookingSettings(client, settings) {
+    return client.rpc('upsert_booking_settings', {
+        p_slot_duration: Number(settings.slotDuration),
+        p_booking_windows: normalizeBookingWindows(settings.bookingWindows)
     });
 }
