@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Database | Jai Gurudev Pet Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; background: #f3f4f6; }
+        .sidebar { background: #0f766e; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .timeline-line { position: absolute; left: 20px; top: 40px; bottom: 0; width: 2px; background: #e5e7eb; }
+        .timeline-dot { position: absolute; left: 14px; width: 14px; height: 14px; background: #0d9488; border-radius: 50%; border: 3px solid white; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 border-b border-teal-600">
+            <h1 class="text-xl font-bold">Jai Gurudev Clinic</h1>
+            <p class="text-teal-200 text-sm">Staff Portal</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="dashboard.html" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+            </a>
+            <a href="walkin.html" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="user-plus" class="w-5 h-5"></i> Add Walk-in
+            </a>
+            <a href="patients.html" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg bg-teal-700">
+                <i data-lucide="users" class="w-5 h-5"></i> Patient Database
+            </a>
+        </nav>
+        <div class="p-4 border-t border-teal-600">
+            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700 w-full">
+                <i data-lucide="log-out" class="w-5 h-5"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto">
+        <header class="bg-white shadow-sm px-8 py-4">
+            <h2 class="text-2xl font-bold text-gray-800">Patient Database</h2>
+            <p class="text-gray-500">Search and view complete patient histories</p>
+        </header>
+
+        <div class="p-8">
+            <!-- Search Section -->
+            <div class="card p-6 mb-8">
+                <div class="flex gap-4 flex-wrap">
+                    <div class="flex-1 min-w-[300px]">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-gray-400"></i>
+                            <input type="text" id="searchInput" placeholder="Search by pet name, owner name, or phone..." 
+                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                   onkeyup="debounceSearch()">
+                        </div>
+                    </div>
+                    <select id="filterType" class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" onchange="searchPatients()">
+                        <option value="">All Pet Types</option>
+                        <option value="dog">Dog</option>
+                        <option value="cat">Cat</option>
+                        <option value="bird">Bird</option>
+                        <option value="cow">Cow</option>
+                        <option value="buffalo">Buffalo</option>
+                        <option value="goat">Goat</option>
+                    </select>
+                    <button onclick="searchPatients()" class="px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition">
+                        Search
+                    </button>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="flex gap-6 mt-4 pt-4 border-t text-sm text-gray-600">
+                    <span>Total Patients: <strong id="totalPatients" class="text-gray-900">0</strong></span>
+                    <span>Active (Last 6 months): <strong id="activePatients" class="text-gray-900">0</strong></span>
+                    <span>New This Month: <strong id="newPatients" class="text-gray-900">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="patientsGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="search-x" class="w-8 h-8 text-gray-400"></i>
+                </div>
+                <p class="text-gray-500">No patients found matching your search</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Patient Detail Modal -->
+    <div id="patientModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+        <div class="min-h-screen px-4 py-8 flex justify-center">
+            <div class="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+                <!-- Header -->
+                <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-start z-10">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl flex items-center justify-center text-white text-2xl font-bold" id="modalPetInitial">
+                            P
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-900" id="modalPetName">Pet Name</h3>
+                            <p class="text-gray-500" id="modalOwnerInfo">Owner Name • Phone</p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="px-2 py-1 bg-teal-100 text-teal-800 text-xs rounded-full font-medium" id="modalPetType">Dog</span>
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium" id="modalBreed">Labrador</span>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium" id="modalAge">3 years</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="bookFollowUp()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition flex items-center gap-2">
+                            <i data-lucide="calendar-plus" class="w-4 h-4"></i> Book Follow-up
+                        </button>
+                        <button onclick="closePatientModal()" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 grid lg:grid-cols-3 gap-6">
+                    <!-- Left Column: Info -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <!-- Quick Stats -->
+                        <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Visits</span>
+                                <span class="font-bold text-gray-900" id="statVisits">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Spent</span>
+                                <span class="font-bold text-gray-900" id="statSpent">₹0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Last Visit</span>
+                                <span class="font-bold text-gray-900" id="statLastVisit">Never</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Next Due</span>
+                                <span class="font-bold text-amber-600" id="statNextDue">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Medical Alerts -->
+                        <div>
+                            <h4 class="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                <i data-lucide="heart-pulse" class="w-5 h-5 text-red-500"></i> Medical Alerts
+                            </h4>
+                            <div id="medicalAlerts" class="space-y-2">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+
+                        <!-- Contact Info -->
+                        <div>
+                            <h4 class="font-bold text-gray-900 mb-3">Contact Information</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center gap-2 text-gray-600">
+                                    <i data-lucide="phone" class="w-4 h-4"></i>
+                                    <span id="modalPhone">+91 XXXXX XXXXX</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-gray-600">
+                                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                    <span id="modalAddress">Address not available</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Visit History -->
+                    <div class="lg:col-span-2">
+                        <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i data-lucide="history" class="w-5 h-5 text-teal-600"></i> Visit History
+                        </h4>
+                        
+                        <div id="visitHistory" class="relative space-y-6 pl-4">
+                            <!-- Timeline items -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../config.js"></script>
+    <script>
+        const supabase = initSupabase();
+        let searchTimeout;
+        let currentPatient = null;
+
+        lucide.createIcons();
+
+        async function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(searchPatients, 300);
+        }
+
+        async function searchPatients() {
+            const query = document.getElementById('searchInput').value.trim();
+            const type = document.getElementById('filterType').value;
+            
+            let dbQuery = supabase.from('patients').select('*', { count: 'exact' });
+
+            if (query) {
+                dbQuery = dbQuery.or(`owner_name.ilike.%${query}%,pet_name.ilike.%${query}%,phone.ilike.%${query}%`);
+            }
+            
+            if (type) {
+                dbQuery = dbQuery.eq('pet_type', type);
+            }
+
+            const { data, error, count } = await dbQuery.order('last_visit_date', { ascending: false });
+
+            if (error) {
+                console.error('Search error:', error);
+                return;
+            }
+
+            renderPatients(data || []);
+            updateStats(count || 0, data || []);
+        }
+
+        function renderPatients(patients) {
+            const grid = document.getElementById('patientsGrid');
+            const empty = document.getElementById('emptyState');
+
+            if (patients.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            
+            grid.innerHTML = patients.map(p => `
+                <div class="card p-6 hover:shadow-lg transition cursor-pointer" onclick="viewPatientDetail('${p.id}')">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                                ${p.pet_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900">${p.pet_name}</h3>
+                                <p class="text-sm text-gray-500">${p.owner_name}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">${p.pet_type}</span>
+                    </div>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Phone</span>
+                            <span class="font-medium">${p.phone}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Visits</span>
+                            <span class="font-medium">${p.total_visits || 0}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Last Visit</span>
+                            <span class="font-medium">${p.last_visit_date ? new Date(p.last_visit_date).toLocaleDateString('en-IN') : 'Never'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t flex justify-between items-center">
+                        <span class="text-xs text-gray-500">ID: ${p.id.substring(0, 8)}</span>
+                        <button class="text-teal-600 text-sm font-medium hover:underline">View History →</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(total, patients) {
+            document.getElementById('totalPatients').textContent = total;
+            
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const active = patients.filter(p => p.last_visit_date && new Date(p.last_visit_date) > sixMonthsAgo).length;
+            document.getElementById('activePatients').textContent = active;
+            
+            const thisMonth = new Date().getMonth();
+            const newThisMonth = patients.filter(p => {
+                const created = new Date(p.created_at);
+                return created.getMonth() === thisMonth;
+            }).length;
+            document.getElementById('newPatients').textContent = newThisMonth;
+        }
+
+        async function viewPatientDetail(patientId) {
+            const { data: patient, error } = await supabase
+                .from('patients')
+                .select('*, appointments(*)')
+                .eq('id', patientId)
+                .single();
+
+            if (error) {
+                alert('Error loading patient details');
+                return;
+            }
+
+            currentPatient = patient;
+            
+            document.getElementById('modalPetInitial').textContent = patient.pet_name.charAt(0).toUpperCase();
+            document.getElementById('modalPetName').textContent = patient.pet_name;
+            document.getElementById('modalOwnerInfo').textContent = `${patient.owner_name} • ${patient.phone}`;
+            document.getElementById('modalPetType').textContent = patient.pet_type;
+            document.getElementById('modalBreed').textContent = patient.pet_breed || 'Unknown breed';
+            
+            let ageText = 'Unknown age';
+            if (patient.pet_dob) {
+                const age = Math.floor((new Date() - new Date(patient.pet_dob)) / (365.25 * 24 * 60 * 60 * 1000));
+                ageText = age + (age === 1 ? ' year' : ' years');
+            }
+            document.getElementById('modalAge').textContent = ageText;
+            
+            document.getElementById('statVisits').textContent = patient.total_visits || 0;
+            document.getElementById('statSpent').textContent = '₹' + (patient.total_spent || 0).toLocaleString('en-IN');
+            document.getElementById('statLastVisit').textContent = patient.last_visit_date ? 
+                new Date(patient.last_visit_date).toLocaleDateString('en-IN') : 'Never';
+            
+            document.getElementById('modalPhone').textContent = '+91 ' + patient.phone;
+            document.getElementById('modalAddress').textContent = patient.address || 'Address not available';
+            
+            const alertsDiv = document.getElementById('medicalAlerts');
+            alertsDiv.innerHTML = '';
+            
+            if (patient.allergies && patient.allergies.length > 0) {
+                alertsDiv.innerHTML += `
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800 text-sm">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        <span>Allergies: ${patient.allergies.join(', ')}</span>
+                    </div>
+                `;
+            }
+            
+            if (patient.chronic_conditions && patient.chronic_conditions.length > 0) {
+                alertsDiv.innerHTML += `
+                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800 text-sm">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        <span>Conditions: ${patient.chronic_conditions.join(', ')}</span>
+                    </div>
+                `;
+            }
+            
+            const historyDiv = document.getElementById('visitHistory');
+            const appointments = patient.appointments || [];
+            appointments.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+            
+            historyDiv.innerHTML = '<div class="timeline-line"></div>';
+            
+            appointments.forEach((apt, index) => {
+                const isFirst = index === 0;
+                historyDiv.innerHTML += `
+                    <div class="relative pl-8 pb-6">
+                        <div class="timeline-dot" style="top: 4px; ${isFirst ? 'background: #0d9488;' : 'background: #9ca3af;'}"></div>
+                        <div class="bg-gray-50 rounded-lg p-4 ${isFirst ? 'border-2 border-teal-200' : ''}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-bold text-gray-900">${new Date(apt.appointment_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                    <p class="text-sm text-gray-500">Token: ${apt.id.substring(0, 8).toUpperCase()}</p>
+                                </div>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${apt.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}">
+                                    ${apt.status}
+                                </span>
+                            </div>
+                            
+                            ${apt.diagnosis ? `
+                                <div class="mt-3 space-y-2 text-sm">
+                                    <div><span class="text-gray-500">Diagnosis:</span> <span class="text-gray-900">${apt.diagnosis}</span></div>
+                                    ${apt.treatment_given ? `<div><span class="text-gray-500">Treatment:</span> <span class="text-gray-900">${apt.treatment_given}</span></div>` : ''}
+                                </div>
+                            ` : '<p class="text-sm text-gray-400 italic">No detailed records for this visit</p>'}
+                            
+                            <div class="mt-3 pt-3 border-t flex justify-between items-center">
+                                <span class="text-sm text-gray-500">Fee: ₹${apt.total_amount || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lucide.createIcons();
+            document.getElementById('patientModal').classList.remove('hidden');
+        }
+
+        function closePatientModal() {
+            document.getElementById('patientModal').classList.add('hidden');
+            currentPatient = null;
+        }
+
+        function bookFollowUp() {
+            if (!currentPatient) return;
+            sessionStorage.setItem('followUpPatient', JSON.stringify(currentPatient));
+            window.location.href = '../appointment.html?followup=true';
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.href = '../index.html';
+        }
+
+        searchPatients();
+    </script>
+</body>
+</html>

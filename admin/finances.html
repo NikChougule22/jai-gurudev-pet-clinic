@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reports | Jai Gurudev Pet Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; background: #f3f4f6; }
+        .sidebar { background: #0f766e; }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 border-b border-teal-600">
+            <h1 class="text-xl font-bold">Jai Gurudev Clinic</h1>
+            <p class="text-teal-200 text-sm">Admin Only</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+            </a>
+            <a href="walkin.html" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="user-plus" class="w-5 h-5"></i> Add Walk-in
+            </a>
+            <a href="patients.html" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="users" class="w-5 h-5"></i> Patient Database
+            </a>
+            <a href="finances.html" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-teal-700">
+                <i data-lucide="indian-rupee" class="w-5 h-5"></i> Daily Tally
+            </a>
+        </nav>
+        <div class="p-4 border-t border-teal-600">
+            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700 w-full">
+                <i data-lucide="log-out" class="w-5 h-5"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto relative" id="mainContent">
+        
+        <!-- ACCESS DENIED Overlay -->
+        <div id="accessDenied" class="hidden absolute inset-0 bg-gray-900 z-50 flex items-center justify-center">
+            <div class="text-center text-white">
+                <div class="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="lock" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Access Restricted</h2>
+                <p class="text-gray-400 mb-4">Financial reports are only accessible to Dr.</p>
+                <button onclick="window.location.href='dashboard.html'" class="px-6 py-2 bg-teal-600 rounded-lg hover:bg-teal-700 transition">
+                    Return to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Actual Content -->
+        <div id="financeContent">
+            <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Financial Reports</h2>
+                    <p class="text-gray-500">Confidential - Dr. Only</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="exportToExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Print
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-8 space-y-6">
+                <!-- Date Range -->
+                <div class="card p-4 flex flex-wrap gap-4 items-center">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700">From:</label>
+                        <input type="date" id="dateFrom" class="p-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700">To:</label>
+                        <input type="date" id="dateTo" class="p-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="setRange('today')" class="px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200">Today</button>
+                        <button onclick="setRange('week')" class="px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200">This Week</button>
+                        <button onclick="setRange('month')" class="px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200">This Month</button>
+                    </div>
+                    <button onclick="loadFinancialData()" class="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition">
+                        Generate Report
+                    </button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="card p-6 border-l-4 border-green-500">
+                        <p class="text-gray-500 text-sm font-medium mb-1">Total Revenue</p>
+                        <p class="text-3xl font-bold text-gray-900" id="summaryRevenue">₹0</p>
+                    </div>
+                    <div class="card p-6 border-l-4 border-blue-500">
+                        <p class="text-gray-500 text-sm font-medium mb-1">Total Patients</p>
+                        <p class="text-3xl font-bold text-gray-900" id="summaryPatients">0</p>
+                    </div>
+                    <div class="card p-6 border-l-4 border-amber-500">
+                        <p class="text-gray-500 text-sm font-medium mb-1">Pending Payments</p>
+                        <p class="text-3xl font-bold text-amber-600" id="summaryPending">₹0</p>
+                    </div>
+                    <div class="card p-6 border-l-4 border-purple-500">
+                        <p class="text-gray-500 text-sm font-medium mb-1">Avg. Per Patient</p>
+                        <p class="text-3xl font-bold text-gray-900" id="summaryAverage">₹0</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <div class="card p-6">
+                        <h3 class="font-bold text-gray-900 mb-4">Revenue Trend</h3>
+                        <canvas id="revenueChart" height="250"></canvas>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="font-bold text-gray-900 mb-4">Payment Methods</h3>
+                        <canvas id="paymentChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <!-- Daily Breakdown -->
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h3 class="font-bold text-gray-900">Daily Breakdown</h3>
+                    </div>
+                    <div id="dailyBreakdown" class="divide-y divide-gray-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Pending Alert -->
+                <div id="pendingAlert" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-6">
+                    <h3 class="font-bold text-amber-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-5 h-5"></i> Pending Payments Alert
+                    </h3>
+                    <div id="pendingList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../config.js"></script>
+    <script>
+        const supabase = initSupabase();
+        let revenueChart, paymentChart;
+        let currentData = [];
+
+        document.getElementById('dateTo').valueAsDate = new Date();
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        document.getElementById('dateFrom').valueAsDate = lastWeek;
+
+        async function checkAccess() {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const { data: staff } = await supabase
+                .from('staff')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+            if (!staff || staff.role !== 'admin') {
+                document.getElementById('accessDenied').classList.remove('hidden');
+                document.getElementById('financeContent').classList.add('hidden');
+                
+                await supabase.from('audit_log').insert([{
+                    table_name: 'finances',
+                    action: 'unauthorized_access_attempt',
+                    performed_by: session.user.email,
+                    performed_at: new Date()
+                }]);
+                return;
+            }
+
+            document.getElementById('accessDenied').classList.add('hidden');
+            document.getElementById('financeContent').classList.remove('hidden');
+            loadFinancialData();
+        }
+
+        function setRange(range) {
+            const today = new Date();
+            const from = document.getElementById('dateFrom');
+            const to = document.getElementById('dateTo');
+            
+            to.valueAsDate = today;
+            
+            if (range === 'today') {
+                from.valueAsDate = today;
+            } else if (range === 'week') {
+                const weekAgo = new Date();
+                weekAgo.setDate(today.getDate() - 7);
+                from.valueAsDate = weekAgo;
+            } else if (range === 'month') {
+                const monthAgo = new Date();
+                monthAgo.setMonth(today.getMonth() - 1);
+                from.valueAsDate = monthAgo;
+            }
+            
+            loadFinancialData();
+        }
+
+        async function loadFinancialData() {
+            const from = document.getElementById('dateFrom').value;
+            const to = document.getElementById('dateTo').value;
+            
+            if (!from || !to) {
+                alert('Please select date range');
+                return;
+            }
+
+            try {
+                const { data: appointments, error } = await supabase
+                    .from('appointments')
+                    .select('*')
+                    .gte('appointment_date', from)
+                    .lte('appointment_date', to)
+                    .order('appointment_date', { ascending: true });
+
+                if (error) throw error;
+
+                currentData = appointments || [];
+                updateSummaryCards();
+                updateCharts();
+                updateDailyBreakdown();
+                updatePendingAlert();
+                
+            } catch (error) {
+                console.error('Error loading financial data:', error);
+                alert('Error loading data: ' + error.message);
+            }
+        }
+
+        function updateSummaryCards() {
+            const completed = currentData.filter(a => a.status === 'completed');
+            const totalRevenue = completed.reduce((sum, a) => sum + (a.total_amount || 0), 0);
+            const totalPatients = currentData.length;
+            
+            const pending = currentData.filter(a => a.status === 'treatment-done');
+            const pendingAmount = pending.reduce((sum, a) => sum + (a.total_amount || 0), 0);
+            
+            const average = completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0;
+
+            document.getElementById('summaryRevenue').textContent = '₹' + totalRevenue.toLocaleString('en-IN');
+            document.getElementById('summaryPatients').textContent = totalPatients;
+            document.getElementById('summaryPending').textContent = '₹' + pendingAmount.toLocaleString('en-IN');
+            document.getElementById('summaryAverage').textContent = '₹' + average.toLocaleString('en-IN');
+        }
+
+        function updateCharts() {
+            const dailyRevenue = {};
+            currentData.forEach(a => {
+                if (a.status === 'completed') {
+                    dailyRevenue[a.appointment_date] = (dailyRevenue[a.appointment_date] || 0) + (a.total_amount || 0);
+                }
+            });
+
+            const dates = Object.keys(dailyRevenue).sort();
+            const revenues = dates.map(d => dailyRevenue[d]);
+
+            if (revenueChart) revenueChart.destroy();
+            revenueChart = new Chart(document.getElementById('revenueChart'), {
+                type: 'line',
+                data: {
+                    labels: dates.map(d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })),
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: revenues,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v } } }
+                }
+            });
+
+            const methods = { cash: 0, upi: 0, card: 0, credit: 0 };
+            currentData.filter(a => a.status === 'completed').forEach(a => {
+                methods[a.payment_method || 'cash'] = (methods[a.payment_method || 'cash'] || 0) + 1;
+            });
+
+            if (paymentChart) paymentChart.destroy();
+            paymentChart = new Chart(document.getElementById('paymentChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cash', 'UPI', 'Card', 'Credit'],
+                    datasets: [{
+                        data: [methods.cash, methods.upi, methods.card, methods.credit],
+                        backgroundColor: ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function updateDailyBreakdown() {
+            const byDate = {};
+            currentData.forEach(a => {
+                if (!byDate[a.appointment_date]) byDate[a.appointment_date] = [];
+                byDate[a.appointment_date].push(a);
+            });
+
+            const container = document.getElementById('dailyBreakdown');
+            container.innerHTML = Object.entries(byDate)
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([date, apps]) => {
+                    const completed = apps.filter(a => a.status === 'completed');
+                    const revenue = completed.reduce((s, a) => s + (a.total_amount || 0), 0);
+                    return `
+                        <div class="p-4 flex justify-between items-center hover:bg-gray-50">
+                            <div>
+                                <p class="font-bold text-gray-900">${new Date(date).toLocaleDateString('en-IN')}</p>
+                                <p class="text-sm text-gray-500">${apps.length} patients</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-gray-900">₹${revenue.toLocaleString('en-IN')}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function updatePendingAlert() {
+            const pending = currentData.filter(a => a.status === 'treatment-done');
+            const alert = document.getElementById('pendingAlert');
+            
+            if (pending.length === 0) {
+                alert.classList.add('hidden');
+                return;
+            }
+
+            alert.classList.remove('hidden');
+            document.getElementById('pendingList').innerHTML = pending.map(a => `
+                <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-amber-200">
+                    <div>
+                        <p class="font-medium text-gray-900">${a.pet_name} - ${a.owner_name}</p>
+                        <p class="text-sm text-gray-500">${new Date(a.appointment_date).toLocaleDateString('en-IN')}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-amber-700">₹${a.total_amount || 0}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportToExcel() {
+            const headers = ['Date', 'Time', 'Token', 'Pet Name', 'Owner', 'Type', 'Status', 'Diagnosis', 'Total Amount', 'Payment Method'];
+            const rows = currentData.map(a => [
+                a.appointment_date, a.appointment_time, a.id.substring(0, 8).toUpperCase(),
+                a.pet_name, a.owner_name, a.pet_type, a.status,
+                a.diagnosis || '', a.total_amount || 0, a.payment_method || ''
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `clinic_report_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.href = '../index.html';
+        }
+
+        checkAccess();
+    </script>
+</body>
+</html>

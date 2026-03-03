@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Walk-in | Jai Gurudev Pet Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; background: #f3f4f6; }
+        .sidebar { background: #0f766e; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 border-b border-teal-600">
+            <h1 class="text-xl font-bold">Jai Gurudev Clinic</h1>
+            <p class="text-teal-200 text-sm">Staff Portal</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+            </a>
+            <a href="walkin.html" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-teal-700">
+                <i data-lucide="user-plus" class="w-5 h-5"></i> Add Walk-in
+            </a>
+            <a href="patients.html" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700">
+                <i data-lucide="users" class="w-5 h-5"></i> Patient Database
+            </a>
+        </nav>
+        <div class="p-4 border-t border-teal-600">
+            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-teal-700 w-full">
+                <i data-lucide="log-out" class="w-5 h-5"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto">
+        <header class="bg-white shadow-sm px-8 py-4">
+            <div class="flex items-center gap-4">
+                <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Add Walk-in Patient</h2>
+                    <p class="text-gray-500">Insert urgent case into today's queue</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-4xl mx-auto">
+            <!-- Queue Position -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+                <h3 class="font-bold text-amber-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i> Queue Position
+                </h3>
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="position" value="next" class="peer hidden" checked>
+                        <div class="p-4 rounded-lg border-2 border-gray-200 peer-checked:border-amber-500 peer-checked:bg-amber-100 transition text-center">
+                            <i data-lucide="zap" class="w-8 h-8 mx-auto mb-2 text-amber-600"></i>
+                            <p class="font-bold text-gray-900">Next Immediate</p>
+                            <p class="text-xs text-gray-600">After current patient</p>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="position" value="end" class="peer hidden">
+                        <div class="p-4 rounded-lg border-2 border-gray-200 peer-checked:border-teal-500 peer-checked:bg-teal-50 transition text-center">
+                            <i data-lucide="arrow-down-to-line" class="w-8 h-8 mx-auto mb-2 text-teal-600"></i>
+                            <p class="font-bold text-gray-900">End of Queue</p>
+                            <p class="text-xs text-gray-600">Last for today</p>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="position" value="custom" class="peer hidden">
+                        <div class="p-4 rounded-lg border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition text-center">
+                            <i data-lucide="clock" class="w-8 h-8 mx-auto mb-2 text-blue-600"></i>
+                            <p class="font-bold text-gray-900">Specific Time</p>
+                            <p class="text-xs text-gray-600">Choose slot</p>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="customTimeSelector" class="hidden mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
+                    <select id="customTime" class="w-full p-3 border border-gray-300 rounded-lg"></select>
+                </div>
+            </div>
+
+            <!-- Patient Form -->
+            <form id="walkinForm" class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                        <div class="flex gap-2">
+                            <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="10 digit number">
+                            <button type="button" onclick="lookupPatient()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Lookup</button>
+                        </div>
+                        <div id="patientLookupResult" class="mt-2 hidden"></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Owner Name *</label>
+                        <input type="text" name="ownerName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pet Name *</label>
+                        <input type="text" name="petName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pet Type *</label>
+                        <select name="petType" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                            <option value="dog">Dog</option>
+                            <option value="cat">Cat</option>
+                            <option value="bird">Bird</option>
+                            <option value="cow">Cow</option>
+                            <option value="buffalo">Buffalo</option>
+                            <option value="goat">Goat</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Emergency Level</label>
+                        <select name="priority" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                            <option value="normal">Normal</option>
+                            <option value="urgent">Urgent (Pain/Distress)</option>
+                            <option value="critical">Critical (Life Threatening)</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Reason / Symptoms *</label>
+                        <textarea name="reason" required rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="Describe the emergency or reason for visit..."></textarea>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Estimated Fee (₹)</label>
+                        <input type="number" name="estimatedFee" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="Optional">
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <a href="dashboard.html" class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition">Cancel</a>
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-lg font-semibold text-lg hover:shadow-lg transition transform hover:scale-[1.02]">
+                        Add Walk-in Patient
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="../config.js"></script>
+    <script>
+        const supabase = initSupabase();
+        const today = new Date().toISOString().split('T')[0];
+
+        document.querySelectorAll('input[name="position"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const customDiv = document.getElementById('customTimeSelector');
+                if (e.target.value === 'custom') {
+                    customDiv.classList.remove('hidden');
+                    loadAvailableSlots();
+                } else {
+                    customDiv.classList.add('hidden');
+                }
+            });
+        });
+
+        async function loadAvailableSlots() {
+            const { data: booked } = await supabase
+                .from('appointments')
+                .select('appointment_time')
+                .eq('appointment_date', today);
+            
+            const bookedTimes = booked.map(b => b.appointment_time.substring(0, 5));
+            const select = document.getElementById('customTime');
+            select.innerHTML = '';
+            
+            for (let hour = 9; hour <= 20; hour++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                    if (!bookedTimes.includes(time)) {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        select.appendChild(option);
+                    }
+                }
+            }
+        }
+
+        async function lookupPatient() {
+            const phone = document.getElementById('phone').value;
+            if (phone.length !== 10) return;
+
+            const { data: patient } = await supabase
+                .from('patients')
+                .select('*')
+                .eq('phone', phone)
+                .single();
+
+            const resultDiv = document.getElementById('patientLookupResult');
+            
+            if (patient) {
+                resultDiv.innerHTML = `<div class="p-3 bg-green-50 border border-green-200 rounded-lg"><p class="text-green-800 font-medium">✓ Found: ${patient.pet_name} (${patient.pet_type})</p></div>`;
+                document.querySelector('[name="ownerName"]').value = patient.owner_name;
+                document.querySelector('[name="petName"]').value = patient.pet_name;
+                document.querySelector('[name="petType"]').value = patient.pet_type;
+            } else {
+                resultDiv.innerHTML = `<div class="p-3 bg-blue-50 border border-blue-200 rounded-lg"><p class="text-blue-800">New patient registration</p></div>`;
+            }
+            resultDiv.classList.remove('hidden');
+        }
+
+        document.getElementById('walkinForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const position = document.querySelector('input[name="position"]:checked').value;
+            
+            let appointmentTime;
+            if (position === 'next') {
+                appointmentTime = await getNextAvailableSlot();
+            } else if (position === 'end') {
+                appointmentTime = await getLastSlot();
+            } else {
+                appointmentTime = document.getElementById('customTime').value + ':00';
+            }
+
+            const walkinData = {
+                appointment_date: today,
+                appointment_time: appointmentTime,
+                owner_name: formData.get('ownerName'),
+                phone: formData.get('phone'),
+                pet_name: formData.get('petName'),
+                pet_type: formData.get('petType'),
+                reason: '[WALK-IN] ' + formData.get('reason'),
+                status: 'checked-in',
+                is_walkin: true,
+                walkin_added_by: sessionStorage.getItem('staffName') || 'Staff',
+                total_amount: parseInt(formData.get('estimatedFee')) || 0,
+                priority: formData.get('priority')
+            };
+
+            try {
+                const { data: patientId, error: funcError } = await supabase
+                    .rpc('find_or_create_patient', {
+                        p_phone: walkinData.phone,
+                        p_owner_name: walkinData.owner_name,
+                        p_pet_name: walkinData.pet_name,
+                        p_pet_type: walkinData.pet_type
+                    });
+
+                if (funcError) throw funcError;
+
+                walkinData.patient_id = patientId;
+
+                const { error } = await supabase.from('appointments').insert([walkinData]);
+                if (error) throw error;
+
+                alert('Walk-in patient added successfully!');
+                window.location.href = 'dashboard.html';
+                
+            } catch (error) {
+                alert('Error adding walk-in: ' + error.message);
+            }
+        });
+
+        async function getNextAvailableSlot() {
+            const { data: current } = await supabase
+                .from('appointments')
+                .select('appointment_time')
+                .eq('appointment_date', today)
+                .eq('status', 'in-progress')
+                .single();
+            
+            return '10:30:00';
+        }
+
+        async function getLastSlot() {
+            const { data: last } = await supabase
+                .from('appointments')
+                .select('appointment_time')
+                .eq('appointment_date', today)
+                .order('appointment_time', { ascending: false })
+                .limit(1)
+                .single();
+            
+            if (!last) return '09:00:00';
+            
+            const [h, m] = last.appointment_time.split(':');
+            let newM = parseInt(m) + 30;
+            let newH = parseInt(h);
+            if (newM >= 60) { newM = 0; newH++; }
+            return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}:00`;
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            sessionStorage.clear();
+            window.location.href = '../index.html';
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
