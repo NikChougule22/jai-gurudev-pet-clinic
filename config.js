@@ -42,7 +42,8 @@ const CONFIG = {
         GOOGLE_WRITE: 'https://g.page/r/CWvPKF7o8I9hEAI/review',
         JUSTDIAL: 'https://www.justdial.com/Sangli/Jai-Gurudev-Pet-Clinic-Vishrambag-Parshwanath-Colony/9999PX233-X233-181205214907-N3K4_BZDET',
         JUSTDIAL_WRITE: 'https://www.justdial.com/Sangli/Jai-Gurudev-Pet-Clinic-Vishrambag-Parshwanath-Colony/9999PX233-X233-181205214907-N3K4_BZDET/write-review',
-        WHATSAPP: 'https://wa.me/8805014700'  // ← YOUR WHATSAPP
+        WHATSAPP: 'https://wa.me/8805014700',  // ← YOUR WHATSAPP
+        INSTAGRAM: 'https://instagram.com/jaigurudevpetclinic'
     },
     
     SETTINGS: {
