@@ -23,6 +23,15 @@
         .trust-badge { animation: pulse-glow 2s infinite; }
         .review-card { transition: all 0.3s ease; }
         .review-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .hero-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        .hero-slide.active { opacity: 1; }
+        .gallery-tile img { transition: transform 0.5s ease; }
+        .gallery-tile:hover img { transform: scale(1.04); }
     </style>
 </head>
 <body class="text-gray-800 overflow-x-hidden">
@@ -129,9 +138,32 @@
                 <div class="relative mt-4 lg:mt-0 lg:h-[600px] flex items-center justify-center">
                     <div class="relative w-full max-w-lg">
                         <div class="absolute inset-0 bg-gradient-to-r from-teal-400 to-teal-600 rounded-[3rem] transform rotate-3 opacity-20"></div>
-                        <img src="https://images.unsplash.com/photo-1628009368231-7603352989c3?w=800&auto=format&fit=crop&q=80" 
-                             alt="Veterinarian with dog" 
-                             class="relative rounded-[3rem] shadow-2xl w-full object-cover h-[320px] sm:h-[420px] lg:h-[500px] transform hover:scale-[1.02] transition duration-500">
+                        <div class="relative rounded-[3rem] shadow-2xl w-full h-[320px] sm:h-[420px] lg:h-[500px] overflow-hidden">
+                            <img src="assets/images/clinic-exterior.jpg"
+                                 alt="Jai Gurudev Pet Clinic exterior"
+                                 class="hero-slide active w-full h-full object-cover"
+                                 data-hero-slide>
+                            <img src="assets/images/clinic-interior.jpg"
+                                 alt="Jai Gurudev Pet Clinic interior"
+                                 class="hero-slide w-full h-full object-cover"
+                                 data-hero-slide>
+                            <img src="assets/images/doctor-photo.jpg"
+                                 alt="Dr. R. B. Chougule"
+                                 class="hero-slide w-full h-full object-cover"
+                                 data-hero-slide>
+                            <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent"></div>
+                            <div class="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-3">
+                                <div class="text-white">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-white/80">Clinic Glimpse</p>
+                                    <p class="font-semibold">Trusted care in Sangli</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-white/90" data-hero-dot></span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-white/40" data-hero-dot></span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-white/40" data-hero-dot></span>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="absolute -bottom-4 left-2 right-2 sm:-bottom-6 sm:-left-6 sm:right-auto glass p-4 rounded-2xl shadow-xl sm:max-w-xs animate-float">
                             <div class="flex items-center gap-3 mb-2">
@@ -202,7 +234,7 @@
                                  onerror="this.src='https://ui-avatars.com/api/?name=Dr&background=0d9488&color=fff&size=400'">
                             
                             <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-teal-100">
-                                <p class="text-3xl font-bold text-teal-600" id="doctorExp">10+</p>
+                                <p class="text-3xl font-bold text-teal-600" id="doctorExp">35+</p>
                                 <p class="text-sm text-gray-600">Years Experience</p>
                             </div>
                         </div>
@@ -485,6 +517,41 @@
         </div>
     </section>
 
+    <section class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+                <div>
+                    <p class="text-sm font-semibold tracking-[0.25em] text-teal-600 uppercase">Clinic Gallery</p>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 mt-2">A Better Look At The Clinic</h2>
+                </div>
+                <p class="text-gray-600 max-w-xl">A quick view of the clinic space, consultation area, and the doctor behind the care. This uses your real clinic images instead of generic stock visuals.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="gallery-tile md:col-span-2 rounded-3xl overflow-hidden relative min-h-[320px]">
+                    <img src="assets/images/clinic-exterior.jpg" alt="Clinic exterior" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"></div>
+                    <div class="absolute left-6 bottom-6 text-white">
+                        <p class="text-xs uppercase tracking-[0.2em] text-white/75 mb-2">Exterior</p>
+                        <p class="text-2xl font-bold">Easy to find, welcoming to walk-ins</p>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[150px]">
+                        <img src="assets/images/clinic-interior.jpg" alt="Clinic interior" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
+                        <p class="absolute left-5 bottom-4 text-white font-semibold">Clean consultation space</p>
+                    </div>
+                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[150px]">
+                        <img src="assets/images/doctor-photo.jpg" alt="Doctor portrait" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
+                        <p class="absolute left-5 bottom-4 text-white font-semibold">Experienced hands you can trust</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -624,6 +691,27 @@
         // Initialize
         renderReviews();
         lucide.createIcons();
+
+        const heroSlides = Array.from(document.querySelectorAll('[data-hero-slide]'));
+        const heroDots = Array.from(document.querySelectorAll('[data-hero-dot]'));
+        let heroSlideIndex = 0;
+
+        function showHeroSlide(index) {
+            heroSlides.forEach((slide, slideIndex) => {
+                slide.classList.toggle('active', slideIndex === index);
+            });
+            heroDots.forEach((dot, dotIndex) => {
+                dot.classList.toggle('bg-white/90', dotIndex === index);
+                dot.classList.toggle('bg-white/40', dotIndex !== index);
+            });
+        }
+
+        if (heroSlides.length > 1) {
+            setInterval(() => {
+                heroSlideIndex = (heroSlideIndex + 1) % heroSlides.length;
+                showHeroSlide(heroSlideIndex);
+            }, 3200);
+        }
         
         // Auto-scroll
         setInterval(() => scrollReviews('right'), 5000);

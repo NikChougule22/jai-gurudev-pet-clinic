@@ -31,7 +31,7 @@ const CONFIG = {
     DOCTOR: {
         NAME: 'Dr. R. B. Chougule',            // ← DOCTOR NAME
         QUALIFICATION: 'BVSc & AH',
-        EXPERIENCE: '40+ years',
+        EXPERIENCE: '35+ years',
         REGISTRATION: 'Registration No: MSVC2532',  // ← REGISTRATION NUMBER
         PHOTO: 'assets/images/doctor-photo.jpg'
     },
