@@ -43,7 +43,7 @@ const CONFIG = {
         JUSTDIAL: 'https://www.justdial.com/Sangli/Jai-Gurudev-Pet-Clinic-Vishrambag-Parshwanath-Colony/9999PX233-X233-181205214907-N3K4_BZDET',
         JUSTDIAL_WRITE: 'https://www.justdial.com/Sangli/Jai-Gurudev-Pet-Clinic-Vishrambag-Parshwanath-Colony/9999PX233-X233-181205214907-N3K4_BZDET/write-review',
         WHATSAPP: 'https://wa.me/8805014700',  // ← YOUR WHATSAPP
-        INSTAGRAM: 'https://instagram.com/jaigurudevpetclinic'
+        INSTAGRAM: 'https://www.instagram.com/jaigurudevpetclinic_sangli/'
     },
     
     SETTINGS: {
