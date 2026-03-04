@@ -73,11 +73,14 @@
         
         <div id="mobileMenu" class="hidden md:hidden glass border-t border-teal-100">
             <div class="px-4 pt-2 pb-6 space-y-2">
-                <a href="#home" class="block px-3 py-2 text-gray-700 hover:text-teal-600">Home</a>
-                <a href="#services" class="block px-3 py-2 text-gray-700 hover:text-teal-600">Services</a>
-                <a href="#doctor" class="block px-3 py-2 text-gray-700 hover:text-teal-600">Dr. Profile</a>
-                <a href="#reviews" class="block px-3 py-2 text-gray-700 hover:text-teal-600">Reviews</a>
-                <a href="appointment.html" class="block px-3 py-2 text-teal-600 font-medium">Book Appointment</a>
+                <a href="#home" class="mobile-nav-link block px-3 py-2 text-gray-700 hover:text-teal-600">Home</a>
+                <a href="#services" class="mobile-nav-link block px-3 py-2 text-gray-700 hover:text-teal-600">Services</a>
+                <a href="#doctor" class="mobile-nav-link block px-3 py-2 text-gray-700 hover:text-teal-600">Dr. Profile</a>
+                <a href="#reviews" class="mobile-nav-link block px-3 py-2 text-gray-700 hover:text-teal-600">Reviews</a>
+                <a href="appointment.html" class="mobile-nav-link block px-3 py-2 text-teal-600 font-medium">Book Appointment</a>
+                <a href="admin/login.html" class="mobile-nav-link block px-3 py-2 text-teal-700 font-medium flex items-center gap-2">
+                    <i data-lucide="lock" class="w-4 h-4"></i> Staff Login
+                </a>
             </div>
         </div>
     </nav>
@@ -607,6 +610,12 @@
         function toggleMobileMenu() {
             document.getElementById('mobileMenu').classList.toggle('hidden');
         }
+
+        document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobileMenu').classList.add('hidden');
+            });
+        });
         
         // Navbar Scroll
         window.addEventListener('scroll', () => {
