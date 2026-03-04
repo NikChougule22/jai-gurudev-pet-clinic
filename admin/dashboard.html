@@ -620,12 +620,12 @@
 
         function renderTable() {
             const tbody = document.getElementById('scheduleTable');
-            let filtered = appointments;
+            let filtered = appointments.filter(a => !['completed', 'cancelled', 'no-show'].includes(a.status));
             
             if (currentFilter === 'waiting') {
-                filtered = appointments.filter(a => ['scheduled', 'checked-in'].includes(a.status));
+                filtered = filtered.filter(a => ['scheduled', 'checked-in'].includes(a.status));
             } else if (currentFilter === 'in-progress') {
-                filtered = appointments.filter(a => a.status === 'in-progress');
+                filtered = filtered.filter(a => a.status === 'in-progress');
             }
 
             tbody.innerHTML = filtered.map(apt => {
@@ -700,7 +700,12 @@
 
         async function updateStatus(id, status) {
             const { error } = await supabaseClient.from('appointments').update({ status, updated_at: new Date() }).eq('id', id);
-            if (error) alert('Error updating status: ' + error.message);
+            if (error) {
+                alert('Error updating status: ' + error.message);
+                return;
+            }
+
+            await loadDashboard();
         }
 
         async function markNoShow(id) {
@@ -715,7 +720,10 @@
 
             if (error) {
                 alert('Error marking no-show: ' + error.message);
+                return;
             }
+
+            await loadDashboard();
         }
 
         async function deleteAppointment(id) {
@@ -730,16 +738,52 @@
 
             if (error) {
                 alert('Error deleting appointment: ' + error.message);
+                return;
             }
+
+            await loadDashboard();
         }
 
         async function startTreatment(id) {
             const existing = appointments.find(a => a.status === 'in-progress');
             if (existing) {
                 if (!confirm(`Currently with ${existing.pet_name}. Start new patient?`)) return;
-                await supabaseClient.from('appointments').update({ status: 'checked-in' }).eq('id', existing.id);
+                const { error } = await supabaseClient
+                    .from('appointments')
+                    .update({ status: 'checked-in', updated_at: new Date() })
+                    .eq('id', existing.id);
+
+                if (error) {
+                    alert('Error updating existing active patient: ' + error.message);
+                    return;
+                }
             }
             await updateStatus(id, 'in-progress');
+        }
+
+        async function takePayment(id) {
+            const appointment = appointments.find(a => a.id === id);
+            if (!appointment) {
+                return;
+            }
+
+            const paymentMethod = appointment.payment_method || 'cash';
+            const { error } = await supabaseClient
+                .from('appointments')
+                .update({
+                    payment_status: 'paid',
+                    payment_method: paymentMethod,
+                    status: 'completed',
+                    updated_at: new Date()
+                })
+                .eq('id', id);
+
+            if (error) {
+                alert('Error taking payment: ' + error.message);
+                return;
+            }
+
+            await loadDashboard();
         }
 
         function openTreatmentModal(id) {
@@ -851,6 +895,7 @@
 
                 alert(updateData.status === 'completed' ? 'Treatment completed!' : 'Treatment recorded. Waiting for payment.');
                 closeTreatmentModal();
+                await loadDashboard();
             } catch (error) {
                 alert('Error saving: ' + error.message);
             }
