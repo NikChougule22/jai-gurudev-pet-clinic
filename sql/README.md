@@ -11,10 +11,11 @@ This folder stores SQL scripts used for this project in execution order.
    - Validation queries for required public routines.
 3. `003_daily_tally_staff_rls_fix.sql`
    - Grants staff/admin RLS access to `daily_tally` so staff workflow updates do not fail.
+4. `004_finance_monthly_expenses.sql`
+   - Adds `medicine_purchases` and `staff_salaries` with admin-only RLS for monthly expense and net tally reporting.
 
 ## Usage
 
 - Run from Supabase SQL Editor.
 - Apply in numeric order.
 - Keep new changes as new files (e.g., `004_...sql`) instead of editing old files.
-

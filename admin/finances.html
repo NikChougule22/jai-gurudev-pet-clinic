@@ -122,6 +122,101 @@
                     </div>
                 </div>
 
+                <div class="card p-6 space-y-4">
+                    <div class="flex flex-wrap items-center gap-3 justify-between">
+                        <h3 class="font-bold text-gray-900">Monthly Net Tally</h3>
+                        <div class="flex items-center gap-2">
+                            <label for="expenseMonth" class="text-sm text-gray-600">Month:</label>
+                            <input type="month" id="expenseMonth" class="p-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                            <button onclick="loadMonthlyExpenseData()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition">Load Month</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="p-4 rounded-lg bg-green-50 border border-green-200">
+                            <p class="text-sm text-green-700">Income</p>
+                            <p class="text-xl font-bold text-green-800" id="monthIncome">&#8377;0</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-rose-50 border border-rose-200">
+                            <p class="text-sm text-rose-700">Medicine Purchases</p>
+                            <p class="text-xl font-bold text-rose-800" id="monthMedicine">&#8377;0</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-orange-50 border border-orange-200">
+                            <p class="text-sm text-orange-700">Staff Salaries</p>
+                            <p class="text-xl font-bold text-orange-800" id="monthSalaries">&#8377;0</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-teal-50 border border-teal-200">
+                            <p class="text-sm text-teal-700">Net Tally</p>
+                            <p class="text-xl font-bold text-teal-800" id="monthNet">&#8377;0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <div class="card p-6 space-y-4">
+                        <h3 class="font-bold text-gray-900">Add Medicine Purchase Bill</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input type="date" id="medicineDate" class="p-2 border rounded-lg" title="Purchase Date">
+                            <input type="number" id="medicineAmount" class="p-2 border rounded-lg" placeholder="Amount (&#8377;)" min="0">
+                            <input type="text" id="medicineVendor" class="p-2 border rounded-lg" placeholder="Vendor / Store">
+                            <input type="text" id="medicineBillNumber" class="p-2 border rounded-lg" placeholder="Bill Number (optional)">
+                        </div>
+                        <textarea id="medicineNotes" class="w-full p-2 border rounded-lg" rows="2" placeholder="Notes (optional)"></textarea>
+                        <button onclick="addMedicinePurchase()" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition">Add Medicine Bill</button>
+                    </div>
+
+                    <div class="card p-6 space-y-4">
+                        <h3 class="font-bold text-gray-900">Add Staff Salary</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input type="month" id="salaryMonth" class="p-2 border rounded-lg" title="Salary Month">
+                            <input type="date" id="salaryPaymentDate" class="p-2 border rounded-lg" title="Payment Date">
+                            <input type="text" id="salaryStaffName" class="p-2 border rounded-lg" placeholder="Staff Name">
+                            <input type="number" id="salaryAmount" class="p-2 border rounded-lg" placeholder="Amount (&#8377;)" min="0">
+                        </div>
+                        <textarea id="salaryNotes" class="w-full p-2 border rounded-lg" rows="2" placeholder="Notes (optional)"></textarea>
+                        <button onclick="addStaffSalary()" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">Add Salary Entry</button>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <div class="card overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-900">Medicine Purchases (Selected Month)</h3>
+                            <p class="text-sm text-gray-600">Total: <span class="font-semibold text-rose-700" id="medicineTableTotal">&#8377;0</span></p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-600">
+                                    <tr>
+                                        <th class="text-left px-4 py-3">Date</th>
+                                        <th class="text-left px-4 py-3">Vendor</th>
+                                        <th class="text-right px-4 py-3">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="medicineTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-900">Staff Salaries (Selected Month)</h3>
+                            <p class="text-sm text-gray-600">Total: <span class="font-semibold text-orange-700" id="salaryTableTotal">&#8377;0</span></p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-600">
+                                    <tr>
+                                        <th class="text-left px-4 py-3">Month</th>
+                                        <th class="text-left px-4 py-3">Staff Name</th>
+                                        <th class="text-right px-4 py-3">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salaryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Charts -->
                 <div class="grid lg:grid-cols-2 gap-6">
                     <div class="card p-6">
@@ -161,10 +256,44 @@
         let revenueChart, paymentChart;
         let currentData = [];
 
-        document.getElementById('dateTo').valueAsDate = new Date();
-        const lastWeek = new Date();
-        lastWeek.setDate(lastWeek.getDate() - 7);
-        document.getElementById('dateFrom').valueAsDate = lastWeek;
+        function formatMoney(value) {
+            return '\u20B9' + Number(value || 0).toLocaleString('en-IN');
+        }
+
+        function toMonthStart(monthValue) {
+            return monthValue ? `${monthValue}-01` : null;
+        }
+
+        function monthRange(monthValue) {
+            const start = new Date(`${monthValue}-01T00:00:00`);
+            const end = new Date(start);
+            end.setMonth(end.getMonth() + 1);
+            end.setDate(0);
+            return {
+                start: start.toISOString().slice(0, 10),
+                end: end.toISOString().slice(0, 10)
+            };
+        }
+
+        function getCurrentMonthString() {
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${now.getFullYear()}-${month}`;
+        }
+
+        function setDefaultDates() {
+            document.getElementById('dateTo').valueAsDate = new Date();
+            const lastWeek = new Date();
+            lastWeek.setDate(lastWeek.getDate() - 7);
+            document.getElementById('dateFrom').valueAsDate = lastWeek;
+
+            const monthString = getCurrentMonthString();
+            const todayString = new Date().toISOString().slice(0, 10);
+            document.getElementById('expenseMonth').value = monthString;
+            document.getElementById('salaryMonth').value = monthString;
+            document.getElementById('medicineDate').value = todayString;
+            document.getElementById('salaryPaymentDate').value = todayString;
+        }
 
         async function checkAccess() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -191,7 +320,8 @@
 
             document.getElementById('accessDenied').classList.add('hidden');
             document.getElementById('financeContent').classList.remove('hidden');
-            loadFinancialData();
+            await loadFinancialData();
+            await loadMonthlyExpenseData();
         }
 
         function setRange(range) {
@@ -257,10 +387,10 @@
             
             const average = completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0;
 
-            document.getElementById('summaryRevenue').textContent = '₹' + totalRevenue.toLocaleString('en-IN');
+            document.getElementById('summaryRevenue').textContent = formatMoney(totalRevenue);
             document.getElementById('summaryPatients').textContent = totalPatients;
-            document.getElementById('summaryPending').textContent = '₹' + pendingAmount.toLocaleString('en-IN');
-            document.getElementById('summaryAverage').textContent = '₹' + average.toLocaleString('en-IN');
+            document.getElementById('summaryPending').textContent = formatMoney(pendingAmount);
+            document.getElementById('summaryAverage').textContent = formatMoney(average);
         }
 
         function updateCharts() {
@@ -334,7 +464,7 @@
                                 <p class="text-sm text-gray-500">${apps.length} patients</p>
                             </div>
                             <div class="text-right">
-                                <p class="font-bold text-gray-900">₹${revenue.toLocaleString('en-IN')}</p>
+                                <p class="font-bold text-gray-900">${formatMoney(revenue)}</p>
                             </div>
                         </div>
                     `;
@@ -358,10 +488,179 @@
                         <p class="text-sm text-gray-500">${new Date(a.appointment_date).toLocaleDateString('en-IN')}</p>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-amber-700">₹${a.total_amount || 0}</p>
+                        <p class="font-bold text-amber-700">${formatMoney(a.total_amount || 0)}</p>
                     </div>
                 </div>
             `).join('');
+        }
+
+        async function loadMonthlyExpenseData() {
+            const monthValue = document.getElementById('expenseMonth').value;
+            if (!monthValue) {
+                alert('Please select a month');
+                return;
+            }
+
+            const range = monthRange(monthValue);
+
+            try {
+                const [incomeRes, medicineRes, salaryRes] = await Promise.all([
+                    supabaseClient
+                        .from('appointments')
+                        .select('total_amount, status')
+                        .gte('appointment_date', range.start)
+                        .lte('appointment_date', range.end),
+                    supabaseClient
+                        .from('medicine_purchases')
+                        .select('*')
+                        .gte('purchase_date', range.start)
+                        .lte('purchase_date', range.end)
+                        .order('purchase_date', { ascending: false }),
+                    supabaseClient
+                        .from('staff_salaries')
+                        .select('*')
+                        .gte('salary_month', range.start)
+                        .lte('salary_month', range.end)
+                        .order('staff_name', { ascending: true })
+                ]);
+
+                if (incomeRes.error) throw incomeRes.error;
+                if (medicineRes.error) throw medicineRes.error;
+                if (salaryRes.error) throw salaryRes.error;
+
+                const monthlyIncome = (incomeRes.data || [])
+                    .filter(row => row.status === 'completed')
+                    .reduce((sum, row) => sum + (row.total_amount || 0), 0);
+                const monthlyMedicine = (medicineRes.data || [])
+                    .reduce((sum, row) => sum + (row.amount || 0), 0);
+                const monthlySalaries = (salaryRes.data || [])
+                    .reduce((sum, row) => sum + (row.amount || 0), 0);
+                const monthlyNet = monthlyIncome - monthlyMedicine - monthlySalaries;
+
+                document.getElementById('monthIncome').textContent = formatMoney(monthlyIncome);
+                document.getElementById('monthMedicine').textContent = formatMoney(monthlyMedicine);
+                document.getElementById('monthSalaries').textContent = formatMoney(monthlySalaries);
+                document.getElementById('monthNet').textContent = formatMoney(monthlyNet);
+
+                renderMedicineTable(medicineRes.data || []);
+                renderSalaryTable(salaryRes.data || []);
+            } catch (error) {
+                console.error('Error loading monthly expense data:', error);
+                alert('Error loading monthly data: ' + error.message);
+            }
+        }
+
+        function renderMedicineTable(rows) {
+            document.getElementById('medicineTableBody').innerHTML = rows.map(row => `
+                <tr class="border-t border-gray-100">
+                    <td class="px-4 py-3">${new Date(row.purchase_date).toLocaleDateString('en-IN')}</td>
+                    <td class="px-4 py-3">${row.vendor_name || '-'}</td>
+                    <td class="px-4 py-3 text-right font-medium">${formatMoney(row.amount || 0)}</td>
+                </tr>
+            `).join('');
+            const total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+            document.getElementById('medicineTableTotal').textContent = formatMoney(total);
+        }
+
+        function renderSalaryTable(rows) {
+            document.getElementById('salaryTableBody').innerHTML = rows.map(row => `
+                <tr class="border-t border-gray-100">
+                    <td class="px-4 py-3">${new Date(row.salary_month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</td>
+                    <td class="px-4 py-3">${row.staff_name}</td>
+                    <td class="px-4 py-3 text-right font-medium">${formatMoney(row.amount || 0)}</td>
+                </tr>
+            `).join('');
+            const total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+            document.getElementById('salaryTableTotal').textContent = formatMoney(total);
+        }
+
+        async function addMedicinePurchase() {
+            const purchaseDate = document.getElementById('medicineDate').value;
+            const amount = Number(document.getElementById('medicineAmount').value || 0);
+            const vendorName = document.getElementById('medicineVendor').value.trim();
+            const billNumber = document.getElementById('medicineBillNumber').value.trim();
+            const notes = document.getElementById('medicineNotes').value.trim();
+
+            if (!purchaseDate) {
+                alert('Please select medicine purchase date');
+                return;
+            }
+            if (amount <= 0) {
+                alert('Please enter a valid medicine amount');
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const { error } = await supabaseClient.from('medicine_purchases').insert([{
+                    purchase_date: purchaseDate,
+                    vendor_name: vendorName || null,
+                    bill_number: billNumber || null,
+                    amount,
+                    notes: notes || null,
+                    created_by: session?.user?.email || null
+                }]);
+                if (error) throw error;
+
+                document.getElementById('medicineAmount').value = '';
+                document.getElementById('medicineVendor').value = '';
+                document.getElementById('medicineBillNumber').value = '';
+                document.getElementById('medicineNotes').value = '';
+
+                await loadFinancialData();
+                await loadMonthlyExpenseData();
+            } catch (error) {
+                console.error('Error adding medicine purchase:', error);
+                alert('Could not add medicine purchase: ' + error.message);
+            }
+        }
+
+        async function addStaffSalary() {
+            const salaryMonth = document.getElementById('salaryMonth').value;
+            const paymentDate = document.getElementById('salaryPaymentDate').value;
+            const staffName = document.getElementById('salaryStaffName').value.trim();
+            const amount = Number(document.getElementById('salaryAmount').value || 0);
+            const notes = document.getElementById('salaryNotes').value.trim();
+
+            if (!salaryMonth) {
+                alert('Please select salary month');
+                return;
+            }
+            if (!paymentDate) {
+                alert('Please select salary payment date');
+                return;
+            }
+            if (!staffName) {
+                alert('Please enter staff name');
+                return;
+            }
+            if (amount <= 0) {
+                alert('Please enter a valid salary amount');
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const { error } = await supabaseClient.from('staff_salaries').insert([{
+                    payment_date: paymentDate,
+                    salary_month: toMonthStart(salaryMonth),
+                    staff_name: staffName,
+                    amount,
+                    notes: notes || null,
+                    created_by: session?.user?.email || null
+                }]);
+                if (error) throw error;
+
+                document.getElementById('salaryStaffName').value = '';
+                document.getElementById('salaryAmount').value = '';
+                document.getElementById('salaryNotes').value = '';
+
+                await loadFinancialData();
+                await loadMonthlyExpenseData();
+            } catch (error) {
+                console.error('Error adding salary entry:', error);
+                alert('Could not add salary entry: ' + error.message);
+            }
         }
 
         function exportToExcel() {
@@ -386,6 +685,7 @@
             window.location.href = '../index.html';
         }
 
+        setDefaultDates();
         checkAccess();
     </script>
 </body>
