@@ -163,6 +163,10 @@
         const today = new Date().toISOString().split('T')[0];
         let bookingSettings = getDefaultBookingSettings();
 
+        function getCurrentStaffRole() {
+            return (sessionStorage.getItem('staffRole') || 'staff').toLowerCase();
+        }
+
         document.querySelectorAll('input[name="position"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 const customDiv = document.getElementById('customTimeSelector');
@@ -224,6 +228,9 @@
             
             const formData = new FormData(e.target);
             const position = document.querySelector('input[name="position"]:checked').value;
+            const staffRole = getCurrentStaffRole();
+            const staffName = sessionStorage.getItem('staffName') || 'Staff';
+            const estimatedFee = parseInt(formData.get('estimatedFee')) || 0;
             
             let appointmentTime;
             if (position === 'next') {
@@ -244,25 +251,44 @@
                 reason: '[WALK-IN] ' + formData.get('reason'),
                 status: 'checked-in',
                 is_walkin: true,
-                walkin_added_by: sessionStorage.getItem('staffName') || 'Staff',
-                total_amount: parseInt(formData.get('estimatedFee')) || 0
+                walkin_added_by: staffName
             };
 
             try {
-                const { data: patientId, error: funcError } = await supabaseClient
-                    .rpc('find_or_create_patient', {
-                        p_phone: walkinData.phone,
+                // Use RPC path for insert so non-admin staff are not blocked by RLS on related tally tables.
+                const { data: appointmentId, error } = await supabaseClient
+                    .rpc('book_public_appointment', {
+                        p_appointment_date: walkinData.appointment_date,
+                        p_appointment_time: walkinData.appointment_time,
                         p_owner_name: walkinData.owner_name,
+                        p_phone: walkinData.phone,
                         p_pet_name: walkinData.pet_name,
-                        p_pet_type: walkinData.pet_type
+                        p_pet_type: walkinData.pet_type,
+                        p_pet_breed: null,
+                        p_reason: walkinData.reason
                     });
 
-                if (funcError) throw funcError;
-
-                walkinData.patient_id = patientId;
-
-                const { error } = await supabaseClient.from('appointments').insert([walkinData]);
                 if (error) throw error;
+
+                const updateData = {
+                    status: walkinData.status,
+                    is_walkin: walkinData.is_walkin,
+                    walkin_added_by: walkinData.walkin_added_by,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (staffRole === 'admin' && estimatedFee > 0) {
+                    updateData.total_amount = estimatedFee;
+                }
+
+                const { error: updateError } = await supabaseClient
+                    .from('appointments')
+                    .update(updateData)
+                    .eq('id', appointmentId);
+
+                if (updateError) {
+                    console.warn('Walk-in follow-up update skipped:', updateError.message);
+                }
 
                 alert('Walk-in patient added successfully!');
                 window.location.href = 'dashboard.html';
