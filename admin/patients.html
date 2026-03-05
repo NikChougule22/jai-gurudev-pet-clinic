@@ -44,9 +44,15 @@
     </aside>
 
     <main class="flex-1 overflow-y-auto">
-        <header class="bg-white shadow-sm px-8 py-4">
-            <h2 class="text-2xl font-bold text-gray-800">Patient Database</h2>
-            <p class="text-gray-500">Search and view complete patient histories</p>
+        <header class="bg-white shadow-sm px-8 py-4 flex items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Patient Database</h2>
+                <p class="text-gray-500">Search and view complete patient histories</p>
+            </div>
+            <button onclick="logout()" class="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Logout</span>
+            </button>
         </header>
 
         <div class="p-8">
