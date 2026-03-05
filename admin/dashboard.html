@@ -571,14 +571,42 @@
             checkActivePatient();
         }
 
+        function isWalkinAppointment(appointment) {
+            if (!appointment) {
+                return false;
+            }
+
+            if (appointment.is_walkin === true || appointment.is_walkin === 1) {
+                return true;
+            }
+
+            if (typeof appointment.is_walkin === 'string') {
+                const normalized = appointment.is_walkin.trim().toLowerCase();
+                if (['true', 't', '1', 'yes'].includes(normalized)) {
+                    return true;
+                }
+            }
+
+            const reasonText = String(appointment.reason || '').toLowerCase();
+            if (/\bwalk[\s-]?in\b/.test(reasonText)) {
+                return true;
+            }
+
+            if (String(appointment.walkin_added_by || '').trim().length > 0) {
+                return true;
+            }
+
+            return false;
+        }
+
         function updateStaffStats() {
             document.getElementById('statTotal').textContent = appointments.length;
             document.getElementById('statInProgress').textContent = appointments.filter(a => a.status === 'in-progress').length;
             document.getElementById('statWaiting').textContent = appointments.filter(a => ['scheduled', 'checked-in'].includes(a.status)).length;
             document.getElementById('statCompleted').textContent = appointments.filter(a => a.status === 'completed').length;
             
-            document.getElementById('summaryOnline').textContent = appointments.filter(a => !a.is_walkin).length;
-            document.getElementById('summaryWalkins').textContent = appointments.filter(a => a.is_walkin).length;
+            document.getElementById('summaryOnline').textContent = appointments.filter(a => !isWalkinAppointment(a)).length;
+            document.getElementById('summaryWalkins').textContent = appointments.filter(a => isWalkinAppointment(a)).length;
             document.getElementById('summaryCompleted').textContent = appointments.filter(a => a.status === 'completed').length;
         }
 
@@ -638,7 +666,7 @@
                     'cancelled': 'bg-red-100 text-red-800'
                 };
                 
-                const isWalkin = apt.is_walkin;
+                const isWalkin = isWalkinAppointment(apt);
                 
                 let actionBtn = '';
                 if (apt.status === 'scheduled') {
