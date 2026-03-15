@@ -142,29 +142,14 @@
                     <div class="relative w-full max-w-lg">
                         <div class="absolute inset-0 bg-gradient-to-r from-teal-400 to-teal-600 rounded-[3rem] transform rotate-3 opacity-20"></div>
                         <div class="relative rounded-[3rem] shadow-2xl w-full h-[320px] sm:h-[420px] lg:h-[500px] overflow-hidden">
-                            <img src="assets/images/clinic-exterior.jpg"
-                                 alt="Jai Gurudev Pet Clinic exterior"
-                                 class="hero-slide active w-full h-full object-cover"
-                                 data-hero-slide>
-                            <img src="assets/images/clinic-interior.jpg"
-                                 alt="Jai Gurudev Pet Clinic interior"
-                                 class="hero-slide w-full h-full object-cover"
-                                 data-hero-slide>
-                            <img src="assets/images/doctor-photo.jpg"
-                                 alt="Dr. R. B. Chougule"
-                                 class="hero-slide w-full h-full object-cover"
-                                 data-hero-slide>
+                            <div id="heroSlidesContainer"></div>
                             <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent"></div>
                             <div class="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-3">
                                 <div class="text-white">
                                     <p class="text-xs uppercase tracking-[0.2em] text-white/80">Clinic Glimpse</p>
                                     <p class="font-semibold">Trusted care in Sangli</p>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-white/90" data-hero-dot></span>
-                                    <span class="w-2.5 h-2.5 rounded-full bg-white/40" data-hero-dot></span>
-                                    <span class="w-2.5 h-2.5 rounded-full bg-white/40" data-hero-dot></span>
-                                </div>
+                                <div id="heroDotsContainer" class="flex items-center gap-2"></div>
                             </div>
                         </div>
                         
@@ -524,34 +509,14 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
                 <div>
-                    <p class="text-sm font-semibold tracking-[0.25em] text-teal-600 uppercase">Clinic Gallery</p>
-                    <h2 class="font-display text-4xl font-bold text-gray-900 mt-2">A Better Look At The Clinic</h2>
+                    <p class="text-sm font-semibold tracking-[0.25em] text-teal-600 uppercase">Surgery Gallery</p>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 mt-2">Gallery Of Finest Pet & Animal Surgeries</h2>
                 </div>
-                <p class="text-gray-600 max-w-xl">A quick view of the clinic space, consultation area, and the doctor behind the care. This uses your real clinic images instead of generic stock visuals.</p>
+                <p class="text-gray-600 max-w-xl">Gallery of some of finest pet and animal surgeries.</p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="gallery-tile md:col-span-2 rounded-3xl overflow-hidden relative min-h-[320px]">
-                    <img src="assets/images/clinic-exterior.jpg" alt="Clinic exterior" class="absolute inset-0 w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"></div>
-                    <div class="absolute left-6 bottom-6 text-white">
-                        <p class="text-xs uppercase tracking-[0.2em] text-white/75 mb-2">Exterior</p>
-                        <p class="text-2xl font-bold">Easy to find, welcoming to walk-ins</p>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[150px]">
-                        <img src="assets/images/clinic-interior.jpg" alt="Clinic interior" class="absolute inset-0 w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
-                        <p class="absolute left-5 bottom-4 text-white font-semibold">Clean consultation space</p>
-                    </div>
-                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[150px]">
-                        <img src="assets/images/doctor-photo.jpg" alt="Doctor portrait" class="absolute inset-0 w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
-                        <p class="absolute left-5 bottom-4 text-white font-semibold">Experienced hands you can trust</p>
-                    </div>
-                </div>
-            </div>
+            <div id="surgeryGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6"></div>
+            <p class="mt-4 text-sm text-gray-500">Image naming format: <span class="font-medium text-gray-700">assets/images/Surgery_Image_1.jpg</span> to <span class="font-medium text-gray-700">assets/images/Surgery_Image_20.jpg</span></p>
         </div>
     </section>
 
@@ -663,6 +628,56 @@
             { platform: 'justdial', name: 'Suresh Patil', avatar: 'SP', rating: 5, date: '1 month ago', text: 'Five star rating for this clinic. Open on Sundays also which is helpful for working people. Good pharmacy stock available.' }
         ];
 
+        function renderSurgeryGallery() {
+            const gallery = document.getElementById('surgeryGalleryGrid');
+            if (!gallery) {
+                return;
+            }
+
+            const SURGERY_GALLERY_COUNT = 20;
+            const captions = [
+                'Focused surgical care for complex cases',
+                'Pre-op preparation and sterile setup',
+                'Soft tissue surgery with precision',
+                'Orthopedic support and recovery care',
+                'Close monitoring during procedures',
+                'Experienced surgical team at work',
+                'Post-op observation and comfort',
+                'Careful wound management and follow-up',
+                'Compassionate handling for every case',
+                'Trusted outcomes in animal surgery',
+                'Advanced care for critical surgery patients',
+                'Safe anesthesia and procedural monitoring',
+                'Sterile operating environment standards',
+                'Tailored treatment plans for each animal',
+                'Emergency surgery readiness and response',
+                'Detailed post-operative recovery support',
+                'Skillful handling of complex interventions',
+                'Animal-first care throughout surgery',
+                'Careful diagnosis before surgical decisions',
+                'Reliable follow-up after surgical treatment'
+            ];
+
+            const fallbackImages = [
+                'assets/images/clinic-exterior.jpg',
+                'assets/images/clinic-interior.jpg',
+                'assets/images/doctor-photo.jpg'
+            ];
+
+            gallery.innerHTML = Array.from({ length: SURGERY_GALLERY_COUNT }, (_, i) => {
+                const imageNumber = i + 1;
+                const imageSrc = `assets/images/Surgery_Image_${imageNumber}.jpg`;
+                const fallbackSrc = fallbackImages[i % fallbackImages.length];
+                return `
+                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[220px]">
+                        <img src="${imageSrc}" alt="Surgery gallery image ${imageNumber}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover" onerror="this.onerror=null; this.src='${fallbackSrc}'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                        <p class="absolute left-5 bottom-4 text-white font-semibold text-sm leading-snug">${captions[i]}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // Render Reviews
         function renderReviews() {
             const container = document.getElementById('reviewScroll');
@@ -702,13 +717,63 @@
             container.scrollTo({ left: scrollPosition, behavior: 'smooth' });
         }
 
-        // Initialize
-        renderReviews();
-        lucide.createIcons();
-
-        const heroSlides = Array.from(document.querySelectorAll('[data-hero-slide]'));
-        const heroDots = Array.from(document.querySelectorAll('[data-hero-dot]'));
+        let heroSlides = [];
+        let heroDots = [];
         let heroSlideIndex = 0;
+        let heroSlideTimer = null;
+
+        function renderHeroSlides() {
+            const slidesContainer = document.getElementById('heroSlidesContainer');
+            const dotsContainer = document.getElementById('heroDotsContainer');
+
+            if (!slidesContainer || !dotsContainer) {
+                return;
+            }
+
+            const baseSlides = [
+                { src: 'assets/images/clinic-exterior.jpg', alt: 'Jai Gurudev Pet Clinic exterior' },
+                { src: 'assets/images/clinic-interior.jpg', alt: 'Jai Gurudev Pet Clinic interior' },
+                { src: 'assets/images/doctor-photo.jpg', alt: 'Dr. R. B. Chougule' }
+            ];
+
+            const doctorWithPetSlides = Array.from({ length: 10 }, (_, i) => ({
+                src: `assets/images/Doctor_with_pet_${i + 1}.jpg`,
+                alt: `Doctor with pet ${i + 1}`
+            }));
+
+            const allSlides = [...baseSlides, ...doctorWithPetSlides];
+            const fallbackSrc = 'assets/images/doctor-photo.jpg';
+
+            slidesContainer.innerHTML = allSlides.map((slide, index) => `
+                <img src="${slide.src}"
+                     alt="${slide.alt}"
+                     class="hero-slide ${index === 0 ? 'active' : ''} w-full h-full object-cover"
+                     loading="${index === 0 ? 'eager' : 'lazy'}"
+                     decoding="async"
+                     data-hero-slide
+                     onerror="this.onerror=null; this.src='${fallbackSrc}'">
+            `).join('');
+
+            dotsContainer.innerHTML = allSlides.map((_, index) => `
+                <span class="w-2.5 h-2.5 rounded-full ${index === 0 ? 'bg-white/90' : 'bg-white/40'}" data-hero-dot></span>
+            `).join('');
+
+            heroSlides = Array.from(document.querySelectorAll('[data-hero-slide]'));
+            heroDots = Array.from(document.querySelectorAll('[data-hero-dot]'));
+            heroSlideIndex = 0;
+            showHeroSlide(heroSlideIndex);
+
+            if (heroSlideTimer) {
+                clearInterval(heroSlideTimer);
+            }
+
+            if (heroSlides.length > 1) {
+                heroSlideTimer = setInterval(() => {
+                    heroSlideIndex = (heroSlideIndex + 1) % heroSlides.length;
+                    showHeroSlide(heroSlideIndex);
+                }, 3200);
+            }
+        }
 
         function showHeroSlide(index) {
             heroSlides.forEach((slide, slideIndex) => {
@@ -720,12 +785,11 @@
             });
         }
 
-        if (heroSlides.length > 1) {
-            setInterval(() => {
-                heroSlideIndex = (heroSlideIndex + 1) % heroSlides.length;
-                showHeroSlide(heroSlideIndex);
-            }, 3200);
-        }
+        // Initialize
+        renderHeroSlides();
+        renderSurgeryGallery();
+        renderReviews();
+        lucide.createIcons();
         
         // Auto-scroll
         setInterval(() => scrollReviews('right'), 5000);
