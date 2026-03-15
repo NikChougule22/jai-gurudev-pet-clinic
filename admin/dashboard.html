@@ -466,7 +466,6 @@
         let currentUser = null;
         let userRole = null;
         let appointments = [];
-        let todayFinancialAppointments = [];
         let currentActiveId = null;
         let currentFilter = 'all';
         let bookingSettings = getDefaultBookingSettings();
@@ -565,20 +564,6 @@
             }
 
             appointments = data || [];
-            todayFinancialAppointments = appointments;
-
-            if (userRole === 'admin') {
-                const { data: financialData, error: financialError } = await supabaseClient
-                    .from('appointments')
-                    .select('status, payment_status, payment_method, total_amount, payment_received_date, appointment_date')
-                    .or(`and(status.eq.completed,payment_received_date.eq.${today}),and(status.eq.completed,payment_received_date.is.null,appointment_date.eq.${today})`);
-
-                if (financialError) {
-                    console.error('Error loading today financial data:', financialError);
-                } else {
-                    todayFinancialAppointments = financialData || [];
-                }
-            }
             
             if (userRole === 'admin') {
                 updateAdminStats();
@@ -630,7 +615,7 @@
         }
 
         function updateAdminStats() {
-            const completed = todayFinancialAppointments.filter(a => a.status === 'completed' && a.payment_status !== 'waived');
+            const completed = appointments.filter(a => a.status === 'completed');
             const revenue = completed.reduce((sum, a) => sum + (a.total_amount || 0), 0);
             const pending = appointments.filter(a => a.status === 'treatment-done');
             const pendingAmount = pending.reduce((sum, a) => sum + (a.total_amount || 0), 0);
@@ -815,13 +800,11 @@
             }
 
             const paymentMethod = appointment.payment_method || 'cash';
-            const paymentReceivedDate = new Date().toISOString().split('T')[0];
             const { error } = await supabaseClient
                 .from('appointments')
                 .update({
                     payment_status: 'paid',
                     payment_method: paymentMethod,
-                    payment_received_date: paymentReceivedDate,
                     status: 'completed',
                     updated_at: new Date()
                 })
@@ -910,7 +893,6 @@
 
             const total = parseInt(document.getElementById('totalAmount').textContent.replace(/,/g, '')) || 0;
             const paymentWaived = document.getElementById('paymentWaived').checked;
-            const paymentReceivedDate = new Date().toISOString().split('T')[0];
 
             const updateData = {
                 owner_name: document.getElementById('editOwnerName').value,
@@ -935,7 +917,6 @@
                 total_amount: total,
                 payment_method: document.getElementById('paymentMethod').value,
                 payment_status: paymentWaived ? 'waived' : (total > 0 ? 'pending' : 'paid'),
-                payment_received_date: paymentWaived || total > 0 ? null : paymentReceivedDate,
                 status: paymentWaived || total === 0 ? 'completed' : 'treatment-done',
                 updated_at: new Date()
             };
