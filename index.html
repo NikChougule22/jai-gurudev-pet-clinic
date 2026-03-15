@@ -30,6 +30,13 @@
             transition: opacity 0.8s ease;
         }
         .hero-slide.active { opacity: 1; }
+        .surgery-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        .surgery-slide.active { opacity: 1; }
         .gallery-tile img { transition: transform 0.5s ease; }
         .gallery-tile:hover img { transform: scale(1.04); }
     </style>
@@ -515,8 +522,22 @@
                 <p class="text-gray-600 max-w-xl">Gallery of some of finest pet and animal surgeries.</p>
             </div>
 
-            <div id="surgeryGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6"></div>
-            <p class="mt-4 text-sm text-gray-500">Image naming format: <span class="font-medium text-gray-700">assets/images/Surgery_Image_1.jpg</span> to <span class="font-medium text-gray-700">assets/images/Surgery_Image_20.jpg</span></p>
+            <div class="relative rounded-3xl overflow-hidden shadow-xl min-h-[320px] sm:min-h-[420px]">
+                <div id="surgerySlidesContainer"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none"></div>
+                <div class="absolute left-6 right-6 bottom-6 flex items-end justify-between gap-4">
+                    <p id="surgeryCaption" class="text-white font-semibold text-xl sm:text-2xl max-w-3xl">Focused surgical care for complex cases</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="prevSurgerySlide()" class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition">
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        </button>
+                        <button type="button" onclick="nextSurgerySlide()" class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition">
+                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="surgeryDotsContainer" class="absolute left-0 right-0 bottom-3 flex items-center justify-center gap-2"></div>
+            </div>
         </div>
     </section>
 
@@ -629,8 +650,11 @@
         ];
 
         function renderSurgeryGallery() {
-            const gallery = document.getElementById('surgeryGalleryGrid');
-            if (!gallery) {
+            const slidesContainer = document.getElementById('surgerySlidesContainer');
+            const dotsContainer = document.getElementById('surgeryDotsContainer');
+            const captionEl = document.getElementById('surgeryCaption');
+
+            if (!slidesContainer || !dotsContainer || !captionEl) {
                 return;
             }
 
@@ -664,18 +688,75 @@
                 'assets/images/doctor-photo.jpg'
             ];
 
-            gallery.innerHTML = Array.from({ length: SURGERY_GALLERY_COUNT }, (_, i) => {
+            const slides = Array.from({ length: SURGERY_GALLERY_COUNT }, (_, i) => {
                 const imageNumber = i + 1;
                 const imageSrc = `assets/images/Surgery_Image_${imageNumber}.jpg`;
                 const fallbackSrc = fallbackImages[i % fallbackImages.length];
-                return `
-                    <div class="gallery-tile rounded-3xl overflow-hidden relative min-h-[220px]">
-                        <img src="${imageSrc}" alt="Surgery gallery image ${imageNumber}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover" onerror="this.onerror=null; this.src='${fallbackSrc}'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                        <p class="absolute left-5 bottom-4 text-white font-semibold text-sm leading-snug">${captions[i]}</p>
-                    </div>
-                `;
-            }).join('');
+                return { imageSrc, fallbackSrc, caption: captions[i] };
+            });
+
+            slidesContainer.innerHTML = slides.map((slide, index) => `
+                <img src="${slide.imageSrc}" alt="Surgery gallery image ${index + 1}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" class="surgery-slide ${index === 0 ? 'active' : ''} w-full h-full object-cover" data-surgery-slide onerror="this.onerror=null; this.src='${slide.fallbackSrc}'">
+            `).join('');
+
+            dotsContainer.innerHTML = slides.map((_, index) => `
+                <button type="button" class="w-2.5 h-2.5 rounded-full ${index === 0 ? 'bg-white/90' : 'bg-white/40'}" data-surgery-dot onclick="showSurgerySlide(${index})"></button>
+            `).join('');
+
+            surgerySlides = Array.from(document.querySelectorAll('[data-surgery-slide]'));
+            surgeryDots = Array.from(document.querySelectorAll('[data-surgery-dot]'));
+            surgeryCaptions = slides.map(slide => slide.caption);
+            surgerySlideIndex = 0;
+            showSurgerySlide(0);
+
+            if (surgerySlideTimer) {
+                clearInterval(surgerySlideTimer);
+            }
+
+            if (surgerySlides.length > 1) {
+                surgerySlideTimer = setInterval(() => {
+                    nextSurgerySlide();
+                }, 3600);
+            }
+
+            lucide.createIcons();
+        }
+
+        let surgerySlides = [];
+        let surgeryDots = [];
+        let surgeryCaptions = [];
+        let surgerySlideIndex = 0;
+        let surgerySlideTimer = null;
+
+        function showSurgerySlide(index) {
+            if (!surgerySlides.length) {
+                return;
+            }
+
+            const safeIndex = (index + surgerySlides.length) % surgerySlides.length;
+            surgerySlideIndex = safeIndex;
+
+            surgerySlides.forEach((slide, slideIndex) => {
+                slide.classList.toggle('active', slideIndex === safeIndex);
+            });
+
+            surgeryDots.forEach((dot, dotIndex) => {
+                dot.classList.toggle('bg-white/90', dotIndex === safeIndex);
+                dot.classList.toggle('bg-white/40', dotIndex !== safeIndex);
+            });
+
+            const captionEl = document.getElementById('surgeryCaption');
+            if (captionEl) {
+                captionEl.textContent = surgeryCaptions[safeIndex] || '';
+            }
+        }
+
+        function nextSurgerySlide() {
+            showSurgerySlide(surgerySlideIndex + 1);
+        }
+
+        function prevSurgerySlide() {
+            showSurgerySlide(surgerySlideIndex - 1);
         }
 
         // Render Reviews
