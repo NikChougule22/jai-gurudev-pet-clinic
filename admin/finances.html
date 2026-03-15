@@ -255,9 +255,31 @@
         const supabaseClient = initSupabase();
         let revenueChart, paymentChart;
         let currentData = [];
+        let allPendingData = [];
+        let currentRange = { from: null, to: null };
+        let supportsPaymentReceivedDate = true;
 
         function formatMoney(value) {
             return '\u20B9' + Number(value || 0).toLocaleString('en-IN');
+        }
+
+        function dateOnly(value) {
+            return value ? String(value).slice(0, 10) : null;
+        }
+
+        function getRevenueDate(appointment) {
+            return dateOnly(appointment?.payment_received_date) || dateOnly(appointment?.appointment_date);
+        }
+
+        function isPaidCompleted(appointment) {
+            return appointment?.status === 'completed' && (appointment.payment_status === 'paid' || !appointment.payment_status);
+        }
+
+        function isInDateRange(dateValue, from, to) {
+            if (!dateValue || !from || !to) {
+                return false;
+            }
+            return dateValue >= from && dateValue <= to;
         }
 
         function toMonthStart(monthValue) {
@@ -356,16 +378,56 @@
             }
 
             try {
-                const { data: appointments, error } = await supabaseClient
-                    .from('appointments')
-                    .select('*')
-                    .gte('appointment_date', from)
-                    .lte('appointment_date', to)
-                    .order('appointment_date', { ascending: true });
+                currentRange = { from, to };
 
-                if (error) throw error;
+                const [appointmentRangeRes, pendingRes] = await Promise.all([
+                    supabaseClient
+                        .from('appointments')
+                        .select('*')
+                        .gte('appointment_date', from)
+                        .lte('appointment_date', to),
+                    supabaseClient
+                        .from('appointments')
+                        .select('*')
+                        .eq('status', 'treatment-done')
+                        .order('appointment_date', { ascending: false })
+                ]);
 
-                currentData = appointments || [];
+                if (appointmentRangeRes.error) throw appointmentRangeRes.error;
+                if (pendingRes.error) throw pendingRes.error;
+
+                let paymentRangeRows = [];
+                if (supportsPaymentReceivedDate) {
+                    const paymentRangeRes = await supabaseClient
+                        .from('appointments')
+                        .select('*')
+                        .gte('payment_received_date', from)
+                        .lte('payment_received_date', to);
+
+                    if (paymentRangeRes.error) {
+                        if (paymentRangeRes.error.message && paymentRangeRes.error.message.includes('payment_received_date')) {
+                            supportsPaymentReceivedDate = false;
+                        } else {
+                            throw paymentRangeRes.error;
+                        }
+                    } else {
+                        paymentRangeRows = paymentRangeRes.data || [];
+                    }
+                }
+
+                const merged = new Map();
+                [...(appointmentRangeRes.data || []), ...paymentRangeRows].forEach(row => {
+                    if (row?.id) {
+                        merged.set(row.id, row);
+                    }
+                });
+
+                currentData = Array.from(merged.values()).sort((a, b) => {
+                    const aKey = `${dateOnly(a.appointment_date) || ''} ${a.appointment_time || ''}`;
+                    const bKey = `${dateOnly(b.appointment_date) || ''} ${b.appointment_time || ''}`;
+                    return aKey.localeCompare(bKey);
+                });
+                allPendingData = pendingRes.data || [];
                 updateSummaryCards();
                 updateCharts();
                 updateDailyBreakdown();
@@ -378,11 +440,11 @@
         }
 
         function updateSummaryCards() {
-            const completed = currentData.filter(a => a.status === 'completed');
+            const completed = currentData.filter(a => isPaidCompleted(a) && isInDateRange(getRevenueDate(a), currentRange.from, currentRange.to));
             const totalRevenue = completed.reduce((sum, a) => sum + (a.total_amount || 0), 0);
-            const totalPatients = currentData.length;
+            const totalPatients = currentData.filter(a => isInDateRange(dateOnly(a.appointment_date), currentRange.from, currentRange.to)).length;
             
-            const pending = currentData.filter(a => a.status === 'treatment-done');
+            const pending = allPendingData;
             const pendingAmount = pending.reduce((sum, a) => sum + (a.total_amount || 0), 0);
             
             const average = completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0;
@@ -395,11 +457,14 @@
 
         function updateCharts() {
             const dailyRevenue = {};
-            currentData.forEach(a => {
-                if (a.status === 'completed') {
-                    dailyRevenue[a.appointment_date] = (dailyRevenue[a.appointment_date] || 0) + (a.total_amount || 0);
-                }
-            });
+            currentData
+                .filter(a => isPaidCompleted(a))
+                .forEach(a => {
+                    const revenueDate = getRevenueDate(a);
+                    if (isInDateRange(revenueDate, currentRange.from, currentRange.to)) {
+                        dailyRevenue[revenueDate] = (dailyRevenue[revenueDate] || 0) + (a.total_amount || 0);
+                    }
+                });
 
             const dates = Object.keys(dailyRevenue).sort();
             const revenues = dates.map(d => dailyRevenue[d]);
@@ -426,9 +491,11 @@
             });
 
             const methods = { cash: 0, upi: 0, card: 0, credit: 0 };
-            currentData.filter(a => a.status === 'completed').forEach(a => {
-                methods[a.payment_method || 'cash'] = (methods[a.payment_method || 'cash'] || 0) + 1;
-            });
+            currentData
+                .filter(a => isPaidCompleted(a) && isInDateRange(getRevenueDate(a), currentRange.from, currentRange.to))
+                .forEach(a => {
+                    methods[a.payment_method || 'cash'] = (methods[a.payment_method || 'cash'] || 0) + 1;
+                });
 
             if (paymentChart) paymentChart.destroy();
             paymentChart = new Chart(document.getElementById('paymentChart'), {
@@ -447,21 +514,25 @@
         function updateDailyBreakdown() {
             const byDate = {};
             currentData.forEach(a => {
-                if (!byDate[a.appointment_date]) byDate[a.appointment_date] = [];
-                byDate[a.appointment_date].push(a);
+                const rowDate = isPaidCompleted(a) ? getRevenueDate(a) : dateOnly(a.appointment_date);
+                if (!isInDateRange(rowDate, currentRange.from, currentRange.to)) {
+                    return;
+                }
+                if (!byDate[rowDate]) byDate[rowDate] = [];
+                byDate[rowDate].push(a);
             });
 
             const container = document.getElementById('dailyBreakdown');
             container.innerHTML = Object.entries(byDate)
                 .sort((a, b) => b[0].localeCompare(a[0]))
                 .map(([date, apps]) => {
-                    const completed = apps.filter(a => a.status === 'completed');
+                    const completed = apps.filter(a => isPaidCompleted(a) && getRevenueDate(a) === date);
                     const revenue = completed.reduce((s, a) => s + (a.total_amount || 0), 0);
                     return `
                         <div class="p-4 flex justify-between items-center hover:bg-gray-50">
                             <div>
                                 <p class="font-bold text-gray-900">${new Date(date).toLocaleDateString('en-IN')}</p>
-                                <p class="text-sm text-gray-500">${apps.length} patients</p>
+                                <p class="text-sm text-gray-500">${completed.length} payments</p>
                             </div>
                             <div class="text-right">
                                 <p class="font-bold text-gray-900">${formatMoney(revenue)}</p>
@@ -472,7 +543,7 @@
         }
 
         function updatePendingAlert() {
-            const pending = currentData.filter(a => a.status === 'treatment-done');
+            const pending = allPendingData;
             const alert = document.getElementById('pendingAlert');
             
             if (pending.length === 0) {
@@ -485,13 +556,57 @@
                 <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-amber-200">
                     <div>
                         <p class="font-medium text-gray-900">${a.pet_name} - ${a.owner_name}</p>
-                        <p class="text-sm text-gray-500">${new Date(a.appointment_date).toLocaleDateString('en-IN')}</p>
+                        <p class="text-sm text-gray-500">Visit: ${new Date(a.appointment_date).toLocaleDateString('en-IN')}</p>
                     </div>
                     <div class="text-right">
                         <p class="font-bold text-amber-700">${formatMoney(a.total_amount || 0)}</p>
+                        <button onclick="completePendingPayment('${a.id}')" class="text-sm font-medium text-green-700 hover:underline">
+                            Complete Payment
+                        </button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        async function completePendingPayment(id) {
+            const pendingAppointment = allPendingData.find(a => a.id === id);
+            const defaultMethod = (pendingAppointment?.payment_method || 'cash').toLowerCase();
+            const methodInput = prompt('Enter payment method: cash, upi, card, or credit', defaultMethod);
+
+            if (methodInput === null) {
+                return;
+            }
+
+            const paymentMethod = methodInput.trim().toLowerCase();
+            if (!['cash', 'upi', 'card', 'credit'].includes(paymentMethod)) {
+                alert('Invalid payment method. Use cash, upi, card, or credit.');
+                return;
+            }
+
+            const paymentReceivedDate = new Date().toISOString().split('T')[0];
+            const updateData = {
+                status: 'completed',
+                payment_status: 'paid',
+                payment_method: paymentMethod,
+                updated_at: new Date()
+            };
+
+            if (supportsPaymentReceivedDate) {
+                updateData.payment_received_date = paymentReceivedDate;
+            }
+
+            const { error } = await supabaseClient
+                .from('appointments')
+                .update(updateData)
+                .eq('id', id);
+
+            if (error) {
+                alert('Error completing payment: ' + error.message);
+                return;
+            }
+
+            await loadFinancialData();
+            await loadMonthlyExpenseData();
         }
 
         async function loadMonthlyExpenseData() {
@@ -504,10 +619,10 @@
             const range = monthRange(monthValue);
 
             try {
-                const [incomeRes, medicineRes, salaryRes] = await Promise.all([
+                const [incomeByAppointmentRes, medicineRes, salaryRes] = await Promise.all([
                     supabaseClient
                         .from('appointments')
-                        .select('total_amount, status')
+                        .select('*')
                         .gte('appointment_date', range.start)
                         .lte('appointment_date', range.end),
                     supabaseClient
@@ -524,12 +639,38 @@
                         .order('staff_name', { ascending: true })
                 ]);
 
-                if (incomeRes.error) throw incomeRes.error;
+                if (incomeByAppointmentRes.error) throw incomeByAppointmentRes.error;
                 if (medicineRes.error) throw medicineRes.error;
                 if (salaryRes.error) throw salaryRes.error;
 
-                const monthlyIncome = (incomeRes.data || [])
-                    .filter(row => row.status === 'completed')
+                let incomeByPaymentRows = [];
+                if (supportsPaymentReceivedDate) {
+                    const incomeByPaymentRes = await supabaseClient
+                        .from('appointments')
+                        .select('*')
+                        .gte('payment_received_date', range.start)
+                        .lte('payment_received_date', range.end);
+
+                    if (incomeByPaymentRes.error) {
+                        if (incomeByPaymentRes.error.message && incomeByPaymentRes.error.message.includes('payment_received_date')) {
+                            supportsPaymentReceivedDate = false;
+                        } else {
+                            throw incomeByPaymentRes.error;
+                        }
+                    } else {
+                        incomeByPaymentRows = incomeByPaymentRes.data || [];
+                    }
+                }
+
+                const monthlyIncomeRows = new Map();
+                [...(incomeByAppointmentRes.data || []), ...incomeByPaymentRows].forEach(row => {
+                    if (row?.id) {
+                        monthlyIncomeRows.set(row.id, row);
+                    }
+                });
+
+                const monthlyIncome = Array.from(monthlyIncomeRows.values())
+                    .filter(row => isPaidCompleted(row) && isInDateRange(getRevenueDate(row), range.start, range.end))
                     .reduce((sum, row) => sum + (row.total_amount || 0), 0);
                 const monthlyMedicine = (medicineRes.data || [])
                     .reduce((sum, row) => sum + (row.amount || 0), 0);
@@ -664,9 +805,9 @@
         }
 
         function exportToExcel() {
-            const headers = ['Date', 'Time', 'Token', 'Pet Name', 'Owner', 'Type', 'Status', 'Diagnosis', 'Total Amount', 'Payment Method'];
+            const headers = ['Visit Date', 'Payment Date', 'Time', 'Token', 'Pet Name', 'Owner', 'Type', 'Status', 'Diagnosis', 'Total Amount', 'Payment Method'];
             const rows = currentData.map(a => [
-                a.appointment_date, a.appointment_time, a.id.substring(0, 8).toUpperCase(),
+                a.appointment_date, getRevenueDate(a), a.appointment_time, a.id.substring(0, 8).toUpperCase(),
                 a.pet_name, a.owner_name, a.pet_type, a.status,
                 a.diagnosis || '', a.total_amount || 0, a.payment_method || ''
             ]);
